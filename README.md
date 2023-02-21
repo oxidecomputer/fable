@@ -25,6 +25,10 @@ file, and the generator starts a web server with the presentation.
 Initially using templates provided by the library, eventually allowing the user to provide
 their own custom templates.
 
+## Navigation
+
+Currently you can go to the previous and next slide with the left and right arrow keys.
+
 ## Templates
 
 A template is a file with:
