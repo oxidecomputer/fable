@@ -35,8 +35,6 @@ function App() {
   useKey('left', prevPage)
   useKey('right', nextPage)
 
-  // get ref size
-  // scale to fit
   useEffect(() => {
     setScale((window.innerWidth / 1920) * 0.9)
   }, [])
