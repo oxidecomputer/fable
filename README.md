@@ -1,6 +1,9 @@
 # Fable
 
-> ** Note ** WIP: Not usable as a library just yet.
+> ** Note **
+> WIP: Not usable as a library just yet.
+
+<img width="1440" alt="CleanShot 2023-02-21 at 19 18 53@2x" src="https://user-images.githubusercontent.com/4020798/220438709-ef9edac8-7596-46bc-aefe-0c37fb6e2820.png">
 
 A generator for presentations at Oxide, if you'd like to experiment with it you can run:
 
