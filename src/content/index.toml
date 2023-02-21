@@ -1,0 +1,33 @@
+# Page 1
+[[pages]]
+template = "Basic"
+title = "Customer Design Councils"
+list=[
+"Over 20 participants, from F500 enterprises to large cloud SaaS companies have helped us shape the product they want to run",
+"Industries include Financial, Healthcare, Media, Technology, Cloud SaaS",
+"Having a closer relationship throughout development has allowed us to progress through the sales process ahead of launch"]
+
+# Page 2
+[[pages]]
+template = "Basic"
+title = "Customer Engagement"
+text = """
+Customers have helped design this product with us, ensuring it will meet their needs;  we have formalized engagement into a _customer design council_. <br>
+
+Allowing customers to participate has yielded a _better product_, and ensured a foundational set of enterprise customers.
+"""
+
+# Page 4
+[[pages]]
+template = "Code"
+title = "Code test"
+lang = "ts"
+code = """
+const rfd = await fetchRfd(num, user)
+if (!rfd) throw resp404();
+
+// this must not be awaited, it is being deferred
+const discussionPromise = fetchDiscussion(rfd.discussion_link, user)
+
+return defer({ rfd, discussionPromise })
+"""
