@@ -37,8 +37,22 @@ function createDirectoryContents(templatePath, newProjectPath) {
     // get stats about the current file
     const stats = fs.statSync(origFilePath)
 
+    if (
+      origFilePath.includes('node_modules') ||
+      file === '.gitignore' ||
+      file === 'package-lock.json'
+    ) {
+      return
+    }
+
     if (stats.isFile()) {
-      const contents = fs.readFileSync(origFilePath, 'utf8')
+      let contents = fs.readFileSync(origFilePath, 'utf8')
+
+      // Generator uses npm version (when it exists)
+      contents = contents.replace(
+        `"@oxide/fable": "file:../../"`,
+        `"@oxide/fable": "^0.0.1"`,
+      )
 
       const writePath = `${CURR_DIR}/${newProjectPath}/${file}`
       fs.writeFileSync(writePath, contents, 'utf8')

@@ -10,12 +10,11 @@ export const Schema = z.object({
   pages: z.any().array(),
 })
 
-Schema.parse(data)
-
 function App() {
-  let [isFullscreen, setIsFullscreen] = useState(false)
-  let [scale, setScale] = useState(1.0)
-  let [currentPage, setCurrentPage] = useState(0)
+  const [data, setData] = useState<any>()
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [scale, setScale] = useState(1.0)
+  const [currentPage, setCurrentPage] = useState(0)
 
   const prevPage = () => {
     if (currentPage > 0) {
@@ -53,6 +52,16 @@ function App() {
       setScale(widthScale < heightScale ? widthScale : heightScale)
     }
 
+    function checkContent() {
+      if (window.ENV && window.ENV.content) {
+        const content = window.ENV.content
+
+        setData(content)
+        Schema.parse(content)
+      }
+    }
+
+    checkContent()
     checkScale()
 
     addEventListener('fullscreenchange', onFullscreenChange)

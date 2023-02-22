@@ -1,1 +1,7 @@
-import './node_modules/@oxide/fable/src/main.tsx'
+import '@oxide/fable/src/main.tsx'
+
+import data from './content.toml'
+
+window.ENV = {
+  content: data,
+}
