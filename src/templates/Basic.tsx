@@ -14,7 +14,7 @@ export const Template = ({ data }: { data: Schema }) => {
   const { text, title, list } = data
 
   return (
-    <div className="page page-padding flex flex-col justify-between">
+    <div className="page page-padding flex flex-col">
       <h1 className="large-title">{title}</h1>
 
       {list && (
@@ -28,7 +28,7 @@ export const Template = ({ data }: { data: Schema }) => {
       )}
 
       {text && (
-        <div className="body-md pr-[120px]">
+        <div className="markdown body-md">
           <Markdown content={text} />
         </div>
       )}

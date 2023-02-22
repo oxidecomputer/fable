@@ -1,13 +1,18 @@
 # Page 1
 [[pages]]
+template = "Cover"
+title = "*Unwanted features:* <br> Finding and exploiting an in ROM buffer overflow on the LPC55S69"
+
+# Page 1
+[[pages]]
 template = "Basic"
 title = "Customer Design Councils"
 list=[
-"Over 20 participants, from F500 enterprises to large cloud SaaS companies have helped us shape the product they want to run",
+"_Over 20 participants_, from F500 enterprises to large cloud SaaS companies have helped us shape the product they want to run",
 "Industries include Financial, Healthcare, Media, Technology, Cloud SaaS",
-"Having a closer relationship throughout development has allowed us to progress through the sales process ahead of launch"]
+"Having a _closer relationship throughout development_ has allowed us to progress through the sales process ahead of launch"]
 
-# Page 2
+# Page 3
 [[pages]]
 template = "Basic"
 title = "Customer Engagement"
@@ -19,10 +24,12 @@ Allowing customers to participate has yielded a _better product_, and ensured a 
 
 # Page 4
 [[pages]]
-template = "Code"
-title = "Code test"
-lang = "ts"
-code = """
+template = "Basic"
+title = "Code"
+text = """
+Allowing customers to participate has yielded a _better product_, and ensured a foundational set of enterprise customers.
+
+```js
 const rfd = await fetchRfd(num, user)
 if (!rfd) throw resp404();
 
@@ -30,4 +37,5 @@ if (!rfd) throw resp404();
 const discussionPromise = fetchDiscussion(rfd.discussion_link, user)
 
 return defer({ rfd, discussionPromise })
+```
 """
