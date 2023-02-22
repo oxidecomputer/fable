@@ -14,7 +14,7 @@ Schema.parse(data)
 
 function App() {
   let [isFullscreen, setIsFullscreen] = useState(false)
-  let [scale, setScale] = useState(0.5)
+  let [scale, setScale] = useState(1.0)
   let [currentPage, setCurrentPage] = useState(0)
 
   const prevPage = () => {
@@ -42,7 +42,7 @@ function App() {
   useKey('f', enterFullscreen)
 
   useEffect(() => {
-    function onFullscreenChange(event: Event) {
+    function onFullscreenChange() {
       setIsFullscreen(document.fullscreenElement !== null)
     }
 
