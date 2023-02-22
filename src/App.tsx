@@ -13,6 +13,7 @@ export const Schema = z.object({
 Schema.parse(data)
 
 function App() {
+  let [isFullscreen, setIsFullscreen] = useState(false)
   let [scale, setScale] = useState(0.5)
   let [currentPage, setCurrentPage] = useState(0)
 
@@ -32,17 +33,40 @@ function App() {
     }
   }
 
+  const enterFullscreen = () => {
+    document.body.requestFullscreen()
+  }
+
   useKey('left', prevPage)
   useKey('right', nextPage)
+  useKey('f', enterFullscreen)
 
   useEffect(() => {
-    setScale((window.innerWidth / 1920) * 0.9)
+    function onFullscreenChange(event: Event) {
+      setIsFullscreen(document.fullscreenElement !== null)
+    }
+
+    function checkScale() {
+      const widthScale = window.innerWidth / 1920
+      const heightScale = window.innerHeight / 1080
+
+      setScale(widthScale < heightScale ? widthScale : heightScale)
+    }
+
+    checkScale()
+
+    addEventListener('fullscreenchange', onFullscreenChange)
+    addEventListener('resize', checkScale)
   }, [])
 
   if (data && data.pages) {
     return (
       <div className="w-full h-full relative">
-        <Page key={currentPage} data={data.pages[currentPage]} scale={scale} />
+        <Page
+          key={currentPage}
+          data={data.pages[currentPage]}
+          scale={scale * (isFullscreen ? 1.0 : 0.9)}
+        />
       </div>
     )
   }
