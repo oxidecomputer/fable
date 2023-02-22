@@ -1,15 +1,17 @@
 {
-  "name": "fable/-example",
+  "name": "fable-example",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@oxide/fable": "file:../../",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "zod": "^3.20.6"
