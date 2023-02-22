@@ -39,3 +39,14 @@ const discussionPromise = fetchDiscussion(rfd.discussion_link, user)
 return defer({ rfd, discussionPromise })
 ```
 """
+
+# Page 5
+[[pages]]
+template = "Basic"
+title = "Root of Trust Requirements"
+text = """
+- A strong assertion regarding the integrity and authenticity of RoT firmware and hardware configuration
+- A tamper-resistant, impersonation-resistant unique ID
+- A mechanism for extending trust to additional devices
+- A mechanism for re-establishing trust after a compromise
+"""
