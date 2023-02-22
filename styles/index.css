@@ -40,10 +40,10 @@ html,
 
 .body-md {
   @apply font-[300] text-[54px] leading-[1.3] text-secondary;
+}
 
-  br {
-    @apply content-[''] block my-[16px];
-  }
+.body-md br {
+  @apply content-[''] block my-[16px];
 }
 
 .list-item {
