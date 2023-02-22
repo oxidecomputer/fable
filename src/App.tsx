@@ -61,7 +61,7 @@ function App() {
 
   if (data && data.pages) {
     return (
-      <div className="w-full h-full relative">
+      <div className={`w-full h-full relative ${isFullscreen ? 'bg-default' : 'bg-raise'}`}>
         <Page
           key={currentPage}
           data={data.pages[currentPage]}
