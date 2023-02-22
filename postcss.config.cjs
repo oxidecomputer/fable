@@ -1,16 +1,10 @@
-const postcssGlobalData = require('@csstools/postcss-global-data')
+const path = require('path')
 
 module.exports = {
-  plugins: [
-    require('postcss-import'),
-    require('tailwindcss/nesting'),
-    require('tailwindcss'),
-    postcssGlobalData({
-      files: ['node_modules/@oxide/design-system/styles/dist/main.css'],
-    }),
-    require('postcss-custom-properties'),
-    require('./postcss/postcss-wide-gamut-color/index.cjs'),
-    // use `npx autoprefixer --info` to see autoprefixer debug inf
-    require('autoprefixer'),
-  ],
+  plugins: {
+    tailwindcss: {
+      config: path.join(__dirname, 'tailwind.config.cjs'),
+    },
+    autoprefixer: {},
+  },
 }
