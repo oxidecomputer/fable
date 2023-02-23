@@ -17,13 +17,25 @@ function App() {
 
   const prevPage = () => {
     if (currentPage > 0) {
-      setCurrentPage(currentPage - 1)
+      const newPage = currentPage - 1
+      updateUrl(newPage)
+      setCurrentPage(newPage)
     }
   }
 
   const nextPage = () => {
     if (currentPage < data.pages.length - 1) {
-      setCurrentPage(currentPage + 1)
+      const newPage = currentPage + 1
+      updateUrl(newPage)
+      setCurrentPage(newPage)
+    }
+  }
+
+  const updateUrl = (newPage: number) => {
+    if (newPage === 0) {
+      window.location.href = ''
+    } else {
+      window.location.href = `#${newPage + 1}`
     }
   }
 
@@ -62,6 +74,26 @@ function App() {
     addEventListener('fullscreenchange', onFullscreenChange)
     addEventListener('resize', checkScale)
   }, [])
+
+  useEffect(() => {
+    if (!data || !data.pages) {
+      return
+    }
+
+    function getPage() {
+      const hash = window.location.hash.replace('#', '')
+
+      if (!hash) return
+
+      const page = parseInt(hash)
+
+      if (page < data.pages.length) {
+        setCurrentPage(page - 1)
+      }
+    }
+
+    getPage()
+  }, [data])
 
   const pageNumber = () => (
     <div className="absolute bottom-[40px] right-[40px] opacity-40 text-2xl">
