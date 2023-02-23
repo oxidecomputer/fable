@@ -3,34 +3,25 @@ import { z } from 'zod'
 import { Markdown } from './Util'
 
 export const Schema = z.object({
-  title: z.string(),
+  title: z.string().optional(),
   text: z.string().optional(),
-  list: z.array(z.string()).optional(),
 })
 
 type Schema = z.infer<typeof Schema>
 
-export const Template = ({ data }: { data: Schema }) => {
-  const { text, title, list } = data
+export const Template = ({ data, className }: { data: Schema; className?: string }) => {
+  const { text, title } = data
 
   return (
-    <div className="page page-padding flex flex-col">
-      <h1 className="large-title">
-        <Markdown content={title} />
-      </h1>
-
-      {list && (
-        <ul>
-          {list.map((item: string, index: number) => (
-            <li key={index} className="list-item">
-              <Markdown content={item} />
-            </li>
-          ))}
-        </ul>
+    <div className={`page-padding flex flex-col ${className}`}>
+      {title && (
+        <h1 className="large-title text-accent">
+          <Markdown content={title} />
+        </h1>
       )}
 
       {text && (
-        <div className="markdown body-md">
+        <div className="markdown body-md body-padding">
           <Markdown content={text} />
         </div>
       )}

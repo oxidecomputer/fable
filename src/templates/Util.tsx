@@ -1,11 +1,21 @@
 import hljs from 'highlight.js'
 import { marked } from 'marked'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 export const Markdown = ({ content }: { content: string }) => {
+  const wrapper = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
-    hljs.highlightAll()
+    if (!wrapper || !wrapper.current) return
+
+    const elements = wrapper.current.querySelectorAll('pre code')
+
+    if (elements) {
+      elements.forEach((el) => {
+        hljs.highlightElement(el as HTMLElement)
+      })
+    }
   }, [])
 
-  return <div dangerouslySetInnerHTML={{ __html: marked.parse(content) }} />
+  return <div ref={wrapper} dangerouslySetInnerHTML={{ __html: marked.parse(content) }} />
 }
