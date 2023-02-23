@@ -8,12 +8,12 @@ export const Schema = z.object({
 
 type Schema = z.infer<typeof Schema>
 
-export const Template = ({ data }: { data: Schema }) => {
+export const Template = ({ data, className }: { data: Schema; className?: string }) => {
   const { title } = data
 
   return (
-    <div className="page page-padding flex flex-col justify-center !bg-secondary">
-      <h1 className="large-title text-secondary pr-20">
+    <div className={`page-padding flex flex-col justify-center !bg-secondary ${className}`}>
+      <h1 className="text-[110px] leading-[1.1] font-[300] text-secondary pr-[120px]">
         <Markdown content={title} />
       </h1>
     </div>

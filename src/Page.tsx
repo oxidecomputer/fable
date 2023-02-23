@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 
 type Component = {
-  template: ({ data }: { data: any }) => JSX.Element
+  template: ({ data, className }: { data: any; className?: string }) => JSX.Element
   schema: any
 }
 
-function Page({ data, scale }: any) {
+function Page({ data, scale, pageNumber }: any) {
   const [component, setComponent] = useState<Component>()
 
   useEffect(() => {
@@ -37,7 +37,10 @@ function Page({ data, scale }: any) {
         transformOrigin: '50% 50%',
       }}
     >
-      <component.template data={data} />
+      <div className="bg-default relative w-full h-full">
+        <component.template data={data} className="w-full h-full" />
+        {pageNumber}
+      </div>
     </main>
   )
 }

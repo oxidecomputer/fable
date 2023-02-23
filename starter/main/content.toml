@@ -1,52 +1,125 @@
-# Page 1
+[config]
+page_numbers = true
+
 [[pages]]
 template = "Cover"
-title = "*Unwanted features:* <br> Finding and exploiting an in ROM buffer overflow on the LPC55S69"
+title = "*The Unknown:* <br> Unveiling the Wonders <br> of the Universe"
 
-# Page 1
 [[pages]]
 template = "Basic"
-title = "Customer Design Councils"
-list=[
-"_Over 20 participants_, from F500 enterprises to large cloud SaaS companies have helped us shape the product they want to run",
-"Industries include Financial, Healthcare, Media, Technology, Cloud SaaS",
-"Having a _closer relationship throughout development_ has allowed us to progress through the sales process ahead of launch"]
-
-# Page 3
-[[pages]]
-template = "Basic"
-title = "Customer Engagement"
+title = "A Journey Through the Cosmos"
 text = """
-Customers have helped design this product with us, ensuring it will meet their needs;  we have formalized engagement into a _customer design council_. <br>
+- In the _vastness of space_, time and distance are but mere illusions
+    - Worlds exist beyond our wildest imaginations
+        - On these worlds, _beings of all shapes and sizes_ dwell
+- With societies and cultures _as diverse as the stars_ that light up the skies above
 
-Allowing customers to participate has yielded a _better product_, and ensured a foundational set of enterprise customers.
+1. They are united in their quest for knowledge and understanding
+2. The universe itself is our teacher, and its secrets our endless source of inspiration
 """
 
-# Page 4
 [[pages]]
 template = "Basic"
-title = "Code"
+title = "The Verdant Lands"
 text = """
-Allowing customers to participate has yielded a _better product_, and ensured a foundational set of enterprise customers.
+Amidst the lush forests and shimmering lakes, ancient beings of immense power and wisdom dwell, watching over the affairs of mortals with a watchful eye.
+![image](small-placeholder.svg)
+"""
+
+[[pages]]
+template = "FullPageDiagram"
+title = "Phoenix"
+font_size = "28px"
+diagram = """
+                            .-==========
+                         .-' O    =====
+                        /___       ===
+                           \\_      |
+_____________________________)    (_____________________________
+\\___________               .'      `,              ____________/
+  \\__________`.     |||<   `.      .'   >|||     .'__________/
+     \\_________`._  |||  <   `-..-'   >  |||  _.'_________/
+        \\_________`-..|_  _ <      > _  _|..-'_________/
+           \\_________   |_|  //  \\\\  |_|   _________/
+                      .-\\   //    \\\\   /-.
+      ,  .         _.'.- `._        _.' -.`._         .  ,
+    <<<<>>>>     .' .'  /  '``----''`  \\  `. `.     <<<<>>>>
+      '/\\`         /  .' .'.'/|..|\\`.`. `.  \\         '/\\`
+      (())        `  /  / .'| |||| |`. \\  \\  '        (())
+       /\\          ::_.' .' /| || |\\ `. `._::          /\\
+      //\\\\           '``.' | | || | | `.''`           //\\\\
+      //\\\\             .` .` | || | '. '.             //\\\\
+      //\\\\                `  | `' |  '                //\\\\
+      \\\\//                                            \\\\//
+       \\/                      MJP                     \\/
+"""
+
+[[pages]]
+template = "Basic"
+title = "Time and Space"
+text = """
+The human mind, too, is a wonder of the universe, capable of unlocking the secrets of existence and pushing the boundaries of what we know to be true. Through science and philosophy, we seek to understand the nature of reality. <br>
+
+But as we delve deeper into the unknown, we come to realize that the universe is not always as it seems. Time and space warp and twist, and the very fabric of reality is subject to change. And as we grapple with the implications of our discoveries, we are forced to confront the fundamental questions of our existence.
+"""
+
+[[pages]]
+template = "FullPageImage"
+src = "/large-placeholder.svg"
+bg_color = "var(--surface-default)"
+object_fit = "contain"
+
+[[pages]]
+template = "Basic"
+title = "The System"
+text = """
+The console flickers to life as he approaches, the lines of code transforming into a stream of data that flows across the screen. He studies the data, his eyes scanning over the numbers and symbols with practiced ease.
 
 ```js
-const rfd = await fetchRfd(num, user)
-if (!rfd) throw resp404();
-
-// this must not be awaited, it is being deferred
-const discussionPromise = fetchDiscussion(rfd.discussion_link, user)
-
-return defer({ rfd, discussionPromise })
+function processSensorData(sensorData) {
+  if (implant.isActive() && sensorData.value > implant.getThreshold()) {
+    implant.triggerAlert();
+  }
+}
 ```
 """
 
-# Page 5
 [[pages]]
-template = "Basic"
-title = "Root of Trust Requirements"
+template = "HalfPageDiagram"
+title = "Mr. Whiskers"
 text = """
-- A strong assertion regarding the integrity and authenticity of RoT firmware and hardware configuration
-- A tamper-resistant, impersonation-resistant unique ID
-- A mechanism for extending trust to additional devices
-- A mechanism for re-establishing trust after a compromise
+He sat atop the garden wall, his fur ruffled by the autumn breeze. <br>
+
+He watched as the leaves danced in the wind, their vibrant colors a symphony of beauty.
 """
+diagram = """
+                 o   
+                .  
+              ,'  `.  
+            ,'      `.
+          ,'          `.
+        ,'              `. 
+      ,'                  `. 
+    ,'                      `.
+ _,'__________________________`._
+|.------------------------------.|
+||                              ||
+||      i~.           .~i       ||
+||      (:.`..-~~~-..'.:)       ||
+||      i: '  : : :  ` :i       ||
+||      :°  :_ : : _:  °:       ||
+||      !:.: o`. .'o :.:!       ||
+||      "L:_` .'_`. '_:J"       ||
+||       `:-:: `.' ::-:'        ||
+||        )~-. -^- .-~(         ||
+||       : :((`~-~')): :        ||
+||      (.`._  -:-  _.'.)       ||
+||      /\\._  ~`·.·'~  _.\\      ||
+||     i-._~·-..·..-·~_.-i   adl||
+||______________________________||
+`--------------------------------'
+"""
+
+[[pages]]
+template = "Cover"
+title = "_Thank you!_"

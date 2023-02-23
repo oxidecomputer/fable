@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import Page from './Page'
-import data from './content/index.toml'
 import { useKey } from './hooks/use-key'
 import './styles/index.css'
 
@@ -19,15 +18,11 @@ function App() {
   const prevPage = () => {
     if (currentPage > 0) {
       setCurrentPage(currentPage - 1)
-    } else {
-      setCurrentPage(data.pages.length - 1)
     }
   }
 
   const nextPage = () => {
-    if (currentPage === data.pages.length - 1) {
-      setCurrentPage(0)
-    } else {
+    if (currentPage < data.pages.length - 1) {
       setCurrentPage(currentPage + 1)
     }
   }
@@ -68,6 +63,12 @@ function App() {
     addEventListener('resize', checkScale)
   }, [])
 
+  const pageNumber = () => (
+    <div className="absolute bottom-[40px] right-[40px] opacity-40 text-2xl">
+      {currentPage + 1} / {data.pages.length}
+    </div>
+  )
+
   if (data && data.pages) {
     return (
       <div
@@ -77,6 +78,7 @@ function App() {
           key={currentPage}
           data={data.pages[currentPage]}
           scale={scale * (isFullscreen ? 1.0 : 0.9)}
+          pageNumber={data.config && data.config.page_numbers ? pageNumber() : null}
         />
       </div>
     )

@@ -25,10 +25,10 @@ inquirer.prompt(QUESTIONS).then((answers) => {
 
   fs.mkdirSync(`${CURR_DIR}/${projectName}`)
 
-  createDirectoryContents(templatePath, projectName)
+  createDirectoryContents(projectName, templatePath, projectName)
 })
 
-function createDirectoryContents(templatePath, newProjectPath) {
+function createDirectoryContents(projectName, templatePath, newProjectPath) {
   const filesToCreate = fs.readdirSync(templatePath)
 
   filesToCreate.forEach((file) => {
@@ -40,27 +40,48 @@ function createDirectoryContents(templatePath, newProjectPath) {
     if (
       origFilePath.includes('node_modules') ||
       file === '.gitignore' ||
-      file === 'package-lock.json'
+      file === 'package-lock.json' ||
+      file === '.DS_Store'
     ) {
       return
     }
 
     if (stats.isFile()) {
-      let contents = fs.readFileSync(origFilePath, 'utf8')
-
-      // Generator uses npm version (when it exists)
-      contents = contents.replace(
-        `"@oxide/fable": "file:../../"`,
-        `"@oxide/fable": "^0.0.1"`,
-      )
-
       const writePath = `${CURR_DIR}/${newProjectPath}/${file}`
-      fs.writeFileSync(writePath, contents, 'utf8')
+
+      if (file == 'package.json') {
+        let contents = fs.readFileSync(origFilePath, 'utf8')
+        // Generator uses npm version (when it exists)
+        contents = contents.replace(
+          `"@oxide/fable": "file:../../"`,
+          `"@oxide/fable": "^0.0.1"`,
+        )
+        fs.writeFileSync(writePath, contents, 'utf8')
+      } else if (file == 'index.html') {
+        let contents = fs.readFileSync(origFilePath, 'utf8')
+        // Replace title for user provided one
+        contents = contents.replace('Fable – Presentation Generator', toTitle(projectName))
+        fs.writeFileSync(writePath, contents, 'utf8')
+      } else {
+        fs.copyFileSync(origFilePath, writePath)
+      }
     } else if (stats.isDirectory()) {
       fs.mkdirSync(`${CURR_DIR}/${newProjectPath}/${file}`)
 
       // recursive call
-      createDirectoryContents(`${templatePath}/${file}`, `${newProjectPath}/${file}`)
+      createDirectoryContents(
+        projectName,
+        `${templatePath}/${file}`,
+        `${newProjectPath}/${file}`,
+      )
     }
+  })
+}
+
+function toTitle(str) {
+  let string = str.replace('-', ' ')
+
+  return string.replace(/\w\S*/g, function (txt) {
+    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
   })
 }
