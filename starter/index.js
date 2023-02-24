@@ -1,3 +1,4 @@
+#! /usr/bin/env node
 import fs from 'fs'
 import inquirer from 'inquirer'
 import * as url from 'url'
@@ -25,7 +26,17 @@ inquirer.prompt(QUESTIONS).then((answers) => {
 
   fs.mkdirSync(`${CURR_DIR}/${projectName}`)
 
-  createDirectoryContents(projectName, templatePath, projectName)
+  try {
+    createDirectoryContents(projectName, templatePath, projectName)
+
+    console.log(`🎉 Presentation generated!`)
+    console.log(
+      `💿 \`cd\` into "${CURR_DIR}/${projectName}" and run \`npm install\` to install dependencies`,
+    )
+    console.log(`🪄 Run \`npm run start\` and check out the README to get started`)
+  } catch {
+    console.error('🚨 Something went wrong')
+  }
 })
 
 function createDirectoryContents(projectName, templatePath, newProjectPath) {
@@ -38,7 +49,7 @@ function createDirectoryContents(projectName, templatePath, newProjectPath) {
     const stats = fs.statSync(origFilePath)
 
     if (
-      origFilePath.includes('node_modules') ||
+      origFilePath.includes('main/node_modules') ||
       file === '.gitignore' ||
       file === 'package-lock.json' ||
       file === '.DS_Store'
@@ -54,7 +65,7 @@ function createDirectoryContents(projectName, templatePath, newProjectPath) {
         // Generator uses npm version (when it exists)
         contents = contents.replace(
           `"@oxide/fable": "file:../../"`,
-          `"@oxide/fable": "^0.0.0"`,
+          `"@oxide/fable": "^0.0.3"`,
         )
         fs.writeFileSync(writePath, contents, 'utf8')
       } else if (file == 'index.html') {

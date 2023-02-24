@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
+import '../styles/dist/index.css'
 import Page from './Page'
 import { useKey } from './hooks/use-key'
-import './styles/index.css'
 
 export const Schema = z.object({
   pages: z.any().array(),
