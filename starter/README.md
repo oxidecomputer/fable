@@ -5,5 +5,5 @@ A generator for presentations at Oxide.
 To get started, open a new shell and run:
 
 ```sh
-npx create-fable@latest
+npx @oxide/create-fable@latest
 ```

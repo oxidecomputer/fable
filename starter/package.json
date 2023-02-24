@@ -1,6 +1,6 @@
 {
-  "name": "create-fable",
-  "version": "0.0.0",
+  "name": "@oxide/create-fable",
+  "version": "0.0.2",
   "description": "Create a new Fable presentation",
   "main": "index.js",
   "type": "module",
@@ -11,5 +11,9 @@
   "license": "ISC",
   "dependencies": {
     "inquirer": "^9.1.4"
+  },
+  "devDependencies": {},
+  "bin": {
+    "@oxide/create-fable": "index.js"
   }
 }

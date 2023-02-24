@@ -1,14 +1,13 @@
 {
   "name": "@oxide/fable",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.0.3",
   "main": "scripts/start.js",
   "type": "module",
   "scripts": {
     "dev": "run-p dev:*",
     "dev:vite": "node starter/main/index.js",
     "dev:css": "npm run generate:css -- --watch",
-    "generate:css": "postcss styles/index.css --base styles --dir src/styles",
+    "generate:css": "postcss styles/src/index.css --dir styles/dist",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "fmt": "prettier --write --ignore-path ./.gitignore  .",
@@ -16,33 +15,51 @@
     "tsc": "tsc"
   },
   "dependencies": {
+    "@vitejs/plugin-react": "^3.1.0",
     "highlight.js": "^11.7.0",
     "marked": "^4.2.12",
     "mousetrap": "^1.6.5",
-    "postcss-import": "^15.1.0",
+    "typescript": "^4.9.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "vite": "^4.1.0",
+    "vite-plugin-toml": "^0.5.0",
     "zod": "^3.20.6"
   },
   "devDependencies": {
     "@oxide/design-system": "^0.8.0",
     "@trivago/prettier-plugin-sort-imports": "^4.0.0",
+    "@types/inquirer": "^9.0.3",
     "@types/marked": "^4.0.8",
     "@types/mousetrap": "^1.6.11",
     "@types/node": "^18.14.0",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
-    "@vitejs/plugin-react": "^3.1.0",
     "autoprefixer": "^10.4.13",
     "chokidar": "^3.5.3",
     "csstype": "^3.1.1",
     "npm-run-all": "^4.1.5",
-    "postcss": "^8.4.21",
-    "postcss-cli": "^10.1.0",
+    "postcss-import": "^15.1.0",
     "prettier": "^2.8.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "tailwindcss": "^3.2.7",
-    "typescript": "^4.9.3",
-    "vite": "^4.1.0",
-    "vite-plugin-toml": "^0.5.0"
-  }
+    "tailwindcss": "^3.2.7"
+  },
+  "files": [
+    "src/**",
+    "scripts/**",
+    "postcss.config.cjs",
+    "tailwind.config.cjs",
+    "vite.config.ts",
+    "styles/dist/**"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oxidecomputer/fable.git"
+  },
+  "bugs": {
+    "url": "https://github.com/oxidecomputer/fable/issues"
+  },
+  "homepage": "https://github.com/oxidecomputer/fable#readme",
+  "description": "> **Warning** > WIP: Not usable as a library just yet",
+  "author": "",
+  "license": "ISC"
 }
