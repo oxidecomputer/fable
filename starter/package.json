@@ -1,6 +1,6 @@
 {
   "name": "create-fable",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "Create a new Fable presentation",
   "main": "index.js",
   "type": "module",
