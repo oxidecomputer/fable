@@ -1,5 +1,6 @@
 @import './lib/fonts.css';
 @import './lib/highlight.css';
+@import './lib/pdf.css';
 @import '@oxide/design-system/styles/dist/main.css';
 
 @tailwind base;
@@ -14,7 +15,7 @@ body {
   -webkit-text-stroke: 0;
   font-size: 16px;
 
-  @apply bg-tertiary;
+  @apply bg-tertiary m-0;
 }
 
 @layer base {
@@ -24,9 +25,8 @@ body {
 }
 
 #root,
-body,
-html {
-  @apply w-full h-full overflow-hidden space-y-[60px] bg-[#333];
+body {
+  @apply w-full h-full overflow-hidden bg-[#333];
 }
 
 .markdown img {

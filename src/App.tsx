@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
 import '../styles/dist/index.css'
@@ -43,6 +43,11 @@ function App() {
   useKey('right', nextPage)
   useKey('f', enterFullscreen)
 
+  const isPdf = useMemo(() => {
+    const params = new URL(document.location.toString()).searchParams
+    return params.get('pdf')
+  }, [])
+
   useEffect(() => {
     function onFullscreenChange() {
       setIsFullscreen(document.fullscreenElement !== null)
@@ -66,6 +71,10 @@ function App() {
 
     checkContent()
     checkScale()
+
+    if (isPdf) {
+      document.body.classList.add('--pdf')
+    }
 
     addEventListener('fullscreenchange', onFullscreenChange)
     addEventListener('resize', checkScale)
@@ -91,9 +100,9 @@ function App() {
     getPage()
   }, [data])
 
-  const pageNumber = () => (
+  const pageNumber = (currentPage: number) => (
     <div className="absolute bottom-[40px] right-[40px] opacity-40 text-2xl">
-      {currentPage + 1} / {data.pages.length}
+      {currentPage} / {data.pages.length}
     </div>
   )
 
@@ -102,12 +111,27 @@ function App() {
       <div
         className={`w-full h-full relative ${isFullscreen ? 'bg-default' : 'bg-[#333]'}`}
       >
-        <Page
-          key={currentPage}
-          data={data.pages[currentPage]}
-          scale={scale * (isFullscreen ? 1.0 : 0.9)}
-          pageNumber={data.config && data.config.page_numbers ? pageNumber() : null}
-        />
+        {isPdf ? (
+          [...Array(data.pages.length)].map((_e, i) => (
+            <Page
+              key={i}
+              data={data.pages[i]}
+              scale={1}
+              pageNumber={
+                data.config && data.config.page_numbers ? pageNumber(i + 1) : null
+              }
+            />
+          ))
+        ) : (
+          <Page
+            key={currentPage}
+            data={data.pages[currentPage]}
+            scale={scale * (isFullscreen ? 1.0 : 0.9)}
+            pageNumber={
+              data.config && data.config.page_numbers ? pageNumber(currentPage + 1) : null
+            }
+          />
+        )}
       </div>
     )
   }

@@ -1,0 +1,9 @@
+.--pdf #root,
+.--pdf {
+  @apply !overflow-visible;
+}
+
+.--pdf main {
+  @apply !w-[100vw] !h-[100vh] !top-0 !left-0 !relative !transform-none !origin-top-left !aspect-[initial];
+  page-break-after: always;
+}
