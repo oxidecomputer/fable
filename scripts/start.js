@@ -5,6 +5,8 @@ import { createServer } from 'vite'
 const __dirname = fileURLToPath(new URL('../', import.meta.url))
 
 const run = async (root) => {
+  process.env = { ...process.env, VITE_DIR: root }
+
   const server = await createServer({
     root: root,
     configFile: path.resolve(__dirname, 'vite.config.ts'),

@@ -15,8 +15,12 @@ module.exports = {
     fontFamily: false,
     fontSize: true,
   },
-  content: ['./src/**/*.{ts,tsx}'],
-  safelist: ['bg-scrim'],
+  content: [
+    './src/**/*.{ts,tsx}',
+    process.env.NODE_ENV === 'production'
+      ? '../templates/*.jsx'
+      : './starter/main/templates/*.jsx',
+  ],
   theme: {
     borderRadius: {
       ...borderRadiusTokens,
