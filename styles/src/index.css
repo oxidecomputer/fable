@@ -29,7 +29,7 @@ html {
   @apply w-full h-full overflow-hidden space-y-[60px] bg-[#333];
 }
 
-img {
+.markdown img {
   @apply rounded-lg max-w-full max-h-full object-cover mt-[20px] mb-[20px];
 }
 
@@ -61,6 +61,25 @@ img {
   @apply !mb-0;
 }
 
+.error-table {
+  @apply text-mono-md !text-[18px] !leading-[1.3];
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.error-table td,
+.error-table th {
+  @apply uppercase border border-[var(--base-neutral-500)] text-left p-2;
+}
+
+.error-table th {
+  @apply bg-secondary text-secondary;
+}
+
+.error-table td {
+  @apply bg-default;
+}
+
 .list-item {
   @apply border-b border-b-[var(--base-neutral-500)] font-[400] text-[48px] leading-[1.3] text-secondary py-[30px] pr-[180px];
 }
@@ -72,6 +91,10 @@ code:not(pre code) {
 
 em {
   @apply text-accent not-italic;
+}
+
+strong {
+  @apply font-[600] text-default;
 }
 
 ul,

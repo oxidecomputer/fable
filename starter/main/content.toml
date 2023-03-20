@@ -13,16 +13,15 @@ text = """
     - Worlds exist beyond our wildest imaginations
         - On these worlds, _beings of all shapes and sizes_ dwell
 - With societies and cultures _as diverse as the stars_ that light up the skies above
-
-1. They are united in their quest for knowledge and understanding
-2. The universe itself is our teacher, and its secrets our endless source of inspiration
+- They are **united** in their quest for knowledge and understanding
+- The universe itself is our teacher, and its secrets our endless source of inspiration
 """
 
 [[pages]]
 template = "Basic"
 title = "The Verdant Lands"
 text = """
-Amidst the lush forests and shimmering lakes, ancient beings of immense power and wisdom dwell, watching over the affairs of mortals with a watchful eye.
+**Amidst the lush forests and shimmering lakes**, ancient beings of immense power and wisdom dwell, watching over the affairs of mortals with a watchful eye.
 ![image](small-placeholder.svg)
 """
 
@@ -66,7 +65,6 @@ But as we delve deeper into the unknown, we come to realize that the universe is
 [[pages]]
 template = "FullPageImage"
 src = "/large-placeholder.svg"
-bg_color = "var(--surface-default)"
 object_fit = "contain"
 
 [[pages]]
@@ -123,3 +121,9 @@ diagram = """
 [[pages]]
 template = "Cover"
 title = "_Thank you!_"
+
+
+# [[pages]]
+# custom_template = true
+# template = "New"
+# number = 0

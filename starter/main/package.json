@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@oxide/fable": "file:../../"
+    "@oxide/fable": "file:../../",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
 }

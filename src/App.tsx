@@ -32,11 +32,7 @@ function App() {
   }
 
   const updateUrl = (newPage: number) => {
-    if (newPage === 0) {
-      window.location.href = ''
-    } else {
-      window.location.href = `#${newPage + 1}`
-    }
+    window.location.href = `#${newPage + 1}`
   }
 
   const enterFullscreen = () => {
@@ -87,7 +83,7 @@ function App() {
 
       const page = parseInt(hash)
 
-      if (page < data.pages.length) {
+      if (page <= data.pages.length) {
         setCurrentPage(page - 1)
       }
     }

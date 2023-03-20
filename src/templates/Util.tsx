@@ -2,7 +2,15 @@ import hljs from 'highlight.js'
 import { marked } from 'marked'
 import { useEffect, useRef } from 'react'
 
-export const Markdown = ({ content }: { content: string }) => {
+export const Markdown = ({
+  content,
+  className,
+  inline = false,
+}: {
+  content: string
+  className?: string
+  inline?: boolean
+}) => {
   const wrapper = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -17,5 +25,13 @@ export const Markdown = ({ content }: { content: string }) => {
     }
   }, [])
 
-  return <div ref={wrapper} dangerouslySetInnerHTML={{ __html: marked.parse(content) }} />
+  return (
+    <div
+      ref={wrapper}
+      className={className}
+      dangerouslySetInnerHTML={{
+        __html: inline ? marked.parseInline(content) : marked.parse(content),
+      }}
+    />
+  )
 }
