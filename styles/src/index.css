@@ -15,7 +15,7 @@ body {
   -webkit-text-stroke: 0;
   font-size: 16px;
 
-  @apply bg-tertiary m-0;
+  @apply bg-tertiary m-0 h-full;
 }
 
 @layer base {
