@@ -26,8 +26,12 @@ export const Template = ({ data }: { data: Schema }) => {
 
       {text && (
         <div className="flex space-x-[60px]">
-          {text.map((col) => (
-            <Markdown content={col} className="markdown mt-12 body-sm flex-grow basis-0" />
+          {text.map((col, idx) => (
+            <Markdown
+              key={idx}
+              content={col}
+              className="markdown mt-12 body-sm flex-grow basis-0"
+            />
           ))}
         </div>
       )}
