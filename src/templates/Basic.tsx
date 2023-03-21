@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { Markdown } from './Util'
+import { FitText, Markdown } from './Util'
 
 export const Schema = z.object({
   title: z.string().optional(),
@@ -21,8 +21,10 @@ export const Template = ({ data }: { data: Schema }) => {
       )}
 
       {text && (
-        <div className="markdown body-md body-padding">
-          <Markdown content={text} />
+        <div className="markdown body-md body-padding flex-grow">
+          <FitText>
+            <Markdown content={text} />
+          </FitText>
         </div>
       )}
     </div>

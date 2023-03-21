@@ -1120,6 +1120,12 @@ body {
   --tw-backdrop-saturate:  ;
   --tw-backdrop-sepia:  ;
 }
+.visible {
+  visibility: visible;
+}
+.invisible {
+  visibility: hidden;
+}
 .absolute {
   position: absolute;
 }
@@ -1129,11 +1135,20 @@ body {
 .bottom-\[40px\] {
   bottom: 40px;
 }
+.left-0 {
+  left: 0px;
+}
 .left-1\/2 {
   left: 50%;
 }
+.right-0 {
+  right: 0px;
+}
 .right-\[40px\] {
   right: 40px;
+}
+.top-0 {
+  top: 0px;
 }
 .top-1\/2 {
   top: 50%;
@@ -1165,9 +1180,6 @@ body {
 }
 .table {
   display: table;
-}
-.contents {
-  display: contents;
 }
 .aspect-\[16\/9\] {
   aspect-ratio: 16/9;
