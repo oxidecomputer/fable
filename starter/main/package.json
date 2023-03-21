@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@oxide/fable": "file:../../",
+    "puppeteer": "^19.7.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }
