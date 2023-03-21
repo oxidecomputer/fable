@@ -64,7 +64,7 @@ But as we delve deeper into the unknown, we come to realize that the universe is
 
 [[pages]]
 template = "FullPageImage"
-src = "/large-placeholder.svg"
+image = "/large-placeholder.svg"
 object_fit = "contain"
 
 [[pages]]
@@ -83,7 +83,7 @@ function processSensorData(sensorData) {
 """
 
 [[pages]]
-template = "HalfPageDiagram"
+template = "HalfPage"
 title = "Mr. Whiskers"
 text = """
 He sat atop the garden wall, his fur ruffled by the autumn breeze. <br>
@@ -117,6 +117,16 @@ diagram = """
 ||______________________________||
 `--------------------------------'
 """
+
+[[pages]]
+template = "HalfPage"
+title = "Mr. Whiskers"
+text = """
+He sat atop the garden wall, his fur ruffled by the autumn breeze. <br>
+
+He watched as the leaves danced in the wind, their vibrant colors a symphony of beauty.
+"""
+image = "/large-placeholder.svg"
 
 [[pages]]
 template = "Cover"

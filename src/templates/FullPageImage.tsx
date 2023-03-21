@@ -5,7 +5,7 @@ import { Markdown } from './Util'
 export type ObjectFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'
 
 export const Schema = z.object({
-  src: z.string(),
+  image: z.string(),
   bg_color: z.string().optional(),
   object_fit: z.string().optional(),
   title: z.string().optional(),
@@ -13,12 +13,8 @@ export const Schema = z.object({
 
 type Schema = z.infer<typeof Schema>
 
-interface SchemaType extends Omit<Schema, 'object_fit'> {
-  object_fit: ObjectFit
-}
-
-export const Template = ({ data }: { data: SchemaType }) => {
-  const { src, bg_color, object_fit, title } = data
+export const Template = ({ data }: { data: Schema }) => {
+  const { image, bg_color, object_fit, title } = data
 
   const fit = object_fit ? object_fit : 'cover'
 
@@ -30,10 +26,10 @@ export const Template = ({ data }: { data: SchemaType }) => {
       }}
     >
       <img
-        src={src}
+        src={image}
         className="absolute w-full h-full object-cover"
         style={{
-          objectFit: fit,
+          objectFit: fit as ObjectFit,
         }}
       />
 
