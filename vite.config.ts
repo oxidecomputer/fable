@@ -8,7 +8,7 @@ export default () => {
   return defineConfig({
     plugins: [react(), ViteToml()],
     optimizeDeps: {
-      include: ['mousetrap', 'highlight.js'],
+      include: ['mousetrap', 'react-dom/client', 'highlight.js', 'react'],
     },
     build: {
       commonjsOptions: {
