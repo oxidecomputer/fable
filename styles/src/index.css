@@ -38,7 +38,7 @@ body {
 }
 
 .large-title {
-  @apply text-[78px] leading-[1.1] font-[400] mb-[100px];
+  @apply text-[78px] leading-[1.1] font-[400] mb-[100px] pr-[180px];
 }
 
 .body-md {
