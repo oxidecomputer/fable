@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { table } from 'table'
 import { z } from 'zod'
 
 type Component = {
