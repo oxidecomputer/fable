@@ -1194,6 +1194,9 @@ body {
   margin-top: calc(20px * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(20px * var(--tw-space-y-reverse));
 }
+.overflow-hidden {
+  overflow: hidden;
+}
 .rounded-lg {
   border-radius: var(--border-radius-lg);
 }
