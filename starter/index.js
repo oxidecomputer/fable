@@ -65,7 +65,7 @@ function createDirectoryContents(projectName, templatePath, newProjectPath) {
         // Generator uses npm version (when it exists)
         contents = contents.replace(
           `"@oxide/fable": "file:../../"`,
-          `"@oxide/fable": "^0.0.3"`,
+          `"@oxide/fable": "^0.0.4"`,
         )
         fs.writeFileSync(writePath, contents, 'utf8')
       } else if (file == 'index.html') {
