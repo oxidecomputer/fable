@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 
 export const Markdown = ({
   content,
-  className,
+  className = '',
   inline = false,
 }: {
   content: string
@@ -29,7 +29,7 @@ export const Markdown = ({
   return (
     <div
       ref={wrapper}
-      className={className}
+      className={`markdown ${className}`}
       dangerouslySetInnerHTML={{
         __html: inline ? marked.parseInline(content) : marked.parse(content),
       }}

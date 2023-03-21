@@ -1370,16 +1370,16 @@ body {
   line-height: 1.3;
   color: var(--content-secondary);
 }
-.markdown > div {
+.markdown {
   display: flex;
   flex-direction: column;
 }
-.markdown > div > :not([hidden]) ~ :not([hidden]) {
+.markdown > :not([hidden]) ~ :not([hidden]) {
   --tw-space-y-reverse: 0;
   margin-top: calc(20px * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(20px * var(--tw-space-y-reverse));
 }
-.markdown > div > *:last-child {
+.markdown > *:last-child {
   margin-bottom: 0px !important;
 }
 .error-table {

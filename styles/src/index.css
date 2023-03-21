@@ -53,11 +53,11 @@ body {
   @apply font-[400] text-[32px] leading-[1.3] text-secondary;
 }
 
-.markdown > div {
+.markdown {
   @apply flex flex-col space-y-[20px];
 }
 
-.markdown > div > *:last-child {
+.markdown > *:last-child {
   @apply !mb-0;
 }
 
