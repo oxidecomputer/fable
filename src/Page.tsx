@@ -26,7 +26,6 @@ function Page({ data, scale, pageNumber }: any) {
 
         if (!parsedMeta.success) {
           console.error("Can't parse slide data")
-          // prettyTable((parsedMeta as z.SafeParseError<any>).error.issues)
           setErrors(parsedMeta.error.issues)
           console.log(parsedMeta)
         }
@@ -97,18 +96,6 @@ const colWidth = (rows: z.ZodIssue[], colKey: keyof z.ZodIssue) => {
   })
   lengths.sort()
   return lengths[lengths.length - 1]
-}
-
-// Because console.table doesn't wrap cell contents
-function prettyTable(rows: Error[]) {
-  const terminalWidth = 120 // fallback for CI
-  // wrap message but only if it's needed
-  const notMsgWidth = colWidth(rows, 'path') + colWidth(rows, 'code') + 10
-  const msgWidth = Math.min(terminalWidth - notMsgWidth, colWidth(rows, 'message'))
-  return table(
-    [['path', 'code', 'message'], ...rows.map((row) => [row.path, row.code, row.message])],
-    { columns: { 2: { wrapWord: true, width: msgWidth } } },
-  )
 }
 
 export default Page
