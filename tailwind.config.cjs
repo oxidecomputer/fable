@@ -3,18 +3,11 @@
 /** @type {import('tailwindcss/lib/util/createPlugin').default} */
 // @ts-ignore
 const plugin = require('tailwindcss/plugin')
-const {
-  textUtilities,
-  colorUtilities,
-  borderRadiusTokens,
-} = require('@oxide/design-system/styles/dist/tailwind-tokens')
+
+const defaultTheme = require('tailwindcss/defaultTheme')
 
 /** @type {import('tailwindcss/tailwind-config').TailwindConfig} */
 module.exports = {
-  corePlugins: {
-    fontFamily: false,
-    fontSize: true,
-  },
   content: [
     './src/**/*.{ts,tsx}',
     process.env.NODE_ENV === 'production'
@@ -22,18 +15,14 @@ module.exports = {
       : './starter/main/templates/*.jsx',
   ],
   theme: {
-    borderRadius: {
-      ...borderRadiusTokens,
-    },
-    colors: {
-      transparent: 'transparent',
-      current: 'currentColor',
+    extend: {
+      fontFamily: {
+        sans: ['Inter', ...defaultTheme.fontFamily.sans],
+      },
     },
   },
   plugins: [
-    plugin(({ addUtilities, addVariant }) => {
-      addUtilities(textUtilities)
-      addUtilities(colorUtilities)
+    plugin(({ addVariant }) => {
       addVariant('children', '& > *')
     }),
   ],

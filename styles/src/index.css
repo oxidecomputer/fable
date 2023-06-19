@@ -1,7 +1,5 @@
-@import './lib/fonts.css';
 @import './lib/highlight.css';
 @import './lib/pdf.css';
-@import '@oxide/design-system/styles/dist/main.css';
 
 @tailwind base;
 @tailwind components;
@@ -13,133 +11,18 @@ body {
   font-feature-settings: 'ss02' on, 'ss03' on, 'ss09' on, 'ss06' on, 'ss07' on, 'ss08' on,
     'case' on;
   -webkit-text-stroke: 0;
-  font-size: 16px;
+  font-size: 32px;
 
-  @apply bg-tertiary m-0 h-full;
+  @apply bg-neutral-800 m-0 h-full;
 }
 
 @layer base {
   body {
-    @apply text-sans-lg text-default;
+    @apply text-neutral-300;
   }
 }
 
 #root,
 body {
   @apply w-full h-full overflow-hidden bg-[#333];
-}
-
-.markdown img {
-  @apply rounded-lg max-w-full max-h-full object-cover mt-[20px] mb-[20px];
-}
-
-.page-padding {
-  @apply p-[80px];
-}
-
-.large-title {
-  @apply text-[78px] leading-[1.1] font-[400] mb-[100px] pr-[180px];
-}
-
-.body-md {
-  @apply font-[400] text-[48px] leading-[1.3] text-secondary;
-}
-
-.body-padding p {
-  @apply pr-[180px];
-}
-
-.body-sm {
-  @apply font-[400] text-[32px] leading-[1.3] text-secondary;
-}
-
-.markdown {
-  @apply flex flex-col space-y-[20px];
-}
-
-.markdown > *:last-child {
-  @apply !mb-0;
-}
-
-.error-table {
-  @apply text-mono-md !text-[18px] !leading-[1.3];
-  border-collapse: collapse;
-  width: 100%;
-}
-
-.error-table td,
-.error-table th {
-  @apply uppercase border border-[var(--base-neutral-500)] text-left p-2;
-}
-
-.error-table th {
-  @apply bg-secondary text-secondary;
-}
-
-.error-table td {
-  @apply bg-default;
-}
-
-.list-item {
-  @apply border-b border-b-[var(--base-neutral-500)] font-[400] text-[48px] leading-[1.3] text-secondary py-[30px] pr-[180px];
-}
-
-code:not(pre code) {
-  @apply text-tertiary;
-  @apply border rounded-lg text-[0.8em] border-[var(--base-neutral-400)] bg-raise px-[4px] py-[1px] ml-[1px] mr-[1px] align-[1px];
-}
-
-em {
-  @apply text-accent not-italic;
-}
-
-strong {
-  @apply font-[600] text-default;
-}
-
-ul,
-ol {
-  @apply ml-[40px];
-}
-
-ul li::marker,
-ol li::marker {
-  @apply text-quaternary;
-}
-
-ul li,
-ol li {
-  @apply pl-[10px];
-}
-
-ul {
-  @apply list-disc;
-}
-
-ul ul li {
-  list-style-type: circle;
-}
-
-ul ul ul li {
-  list-style-type: square;
-}
-
-ul ul ul ul li {
-  list-style-type: disc;
-}
-
-ol {
-  @apply list-decimal;
-}
-
-ul .list-item:last-of-type {
-  @apply border-b-0 pb-0;
-}
-
-ul .list-item:first-of-type {
-  @apply pt-0;
-}
-
-pre {
-  @apply border border-default rounded-lg p-[20px] !text-[24px] text-mono-code !leading-[1.3] !mt-[40px] !mb-[20px];
 }

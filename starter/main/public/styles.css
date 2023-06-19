@@ -1,0 +1,272 @@
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-Italic.woff2') format('woff2');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-SemiBoldItalic.woff2') format('woff2');
+  font-weight: 600;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Inter Display';
+  src: url('fonts/InterDisplay-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter Display';
+  src: url('fonts/InterDisplay-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter Display';
+  src: url('fonts/InterDisplay-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Inter Display';
+  src: url('fonts/InterDisplay-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: 'Inter Display', sans-serif;
+  text-wrap: balance;
+}
+
+.markdown img {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  max-height: 100%;
+  max-width: 100%;
+  border-radius: 0.5rem;
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+
+.page-padding {
+  padding: 2rem;
+}
+
+.large-title {
+  margin-bottom: 3rem;
+  padding-right: 5rem;
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.body-md {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  --tw-text-opacity: 1;
+  color: rgb(163 163 163 / var(--tw-text-opacity));
+}
+
+.body-padding p {
+  padding-right: 5rem;
+}
+
+.body-sm {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  --tw-text-opacity: 1;
+  color: rgb(163 163 163 / var(--tw-text-opacity));
+}
+
+.markdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.markdown > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1.25rem * var(--tw-space-y-reverse));
+}
+
+.markdown > *:last-child {
+  margin-bottom: 0px;
+}
+
+.error-table {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.error-table td,
+.error-table th {
+  border-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(163 163 163 / var(--tw-border-opacity));
+  padding: 0.5rem;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.error-table th {
+  --tw-bg-opacity: 1;
+  background-color: rgb(209 213 219 / var(--tw-bg-opacity));
+  --tw-text-opacity: 1;
+  color: rgb(163 163 163 / var(--tw-text-opacity));
+}
+
+.error-table td {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 24 39 / var(--tw-bg-opacity));
+}
+
+.list-item {
+  border-bottom-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(163 163 163 / var(--tw-border-opacity));
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+  padding-right: 5rem;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  --tw-text-opacity: 1;
+  color: rgb(163 163 163 / var(--tw-text-opacity));
+}
+
+code:not(pre code) {
+  --tw-text-opacity: 1;
+  color: rgb(163 163 163 / var(--tw-text-opacity));
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
+  border-radius: 0.25rem;
+  border-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(156 163 175 / var(--tw-border-opacity));
+  --tw-bg-opacity: 1;
+  background-color: rgb(243 244 246 / var(--tw-bg-opacity));
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+em {
+  font-style: normal;
+  --tw-text-opacity: 1;
+  color: rgb(165 180 252 / var(--tw-text-opacity));
+}
+
+strong {
+  font-weight: 600;
+  --tw-text-opacity: 1;
+  color: rgb(229 229 229 / var(--tw-text-opacity)); /* Assuming text-default is black color */
+}
+
+ul,
+ol {
+  margin-left: 1rem; /* Adjust to closest standard Tailwind margin */
+}
+
+ul li::marker,
+ol li::marker {
+  --tw-text-opacity: 1;
+  color: rgb(163 163 163 / var(--tw-text-opacity)); /* Assuming text-quaternary translates to some kind of gray color */
+}
+
+ul li,
+ol li {
+  padding-left: 0.5rem;
+}
+
+ul {
+  list-style-type: disc;
+}
+
+ul ul li {
+  list-style-type: circle;
+}
+
+ul ul ul li {
+  list-style-type: square;
+}
+
+ul ul ul ul li {
+  list-style-type: disc;
+}
+
+ol {
+  list-style-type: decimal;
+}
+
+ul .list-item:last-of-type {
+  border-bottom-width: 0px;
+  padding-bottom: 0px;
+}
+
+ul .list-item:first-of-type {
+  padding-top: 0px;
+}
+
+pre {
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+  border-radius: 0.5rem;
+  border-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(82 82 82 / var(--tw-border-opacity));
+  padding: 1.25rem;
+  line-height: 1;
+}
+
+pre code {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}

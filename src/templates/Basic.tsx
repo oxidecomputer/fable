@@ -15,7 +15,7 @@ export const Template = ({ data }: { data: Schema }) => {
   return (
     <div className="page-padding flex flex-col">
       {title && (
-        <h1 className="large-title text-accent">
+        <h1 className="large-title text-indigo-300">
           <Markdown content={title} />
         </h1>
       )}

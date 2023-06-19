@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "run-p dev:*",
-    "dev:vite": "node starter/main/index.js",
+    "dev:server": "npm run start --prefix starter/main",
     "dev:css": "npm run generate:css -- --watch",
     "generate:css": "postcss styles/src/index.css --dir styles/dist",
     "build": "tsc && vite build",
@@ -23,12 +23,15 @@
     "react-dom": "^18.2.0",
     "table": "^6.8.1",
     "typescript": "^4.9.3",
+    "postcss": "^8.4.21",
+    "postcss-cli": "^10.1.0",
+    "postcss-import": "^15.1.0",
+    "tailwindcss": "^3.3.2",
     "vite": "^4.1.0",
     "vite-plugin-toml": "^0.5.0",
     "zod": "^3.20.6"
   },
   "devDependencies": {
-    "@oxide/design-system": "^0.8.0",
     "@trivago/prettier-plugin-sort-imports": "^4.0.0",
     "@types/inquirer": "^9.0.3",
     "@types/marked": "^4.0.8",
@@ -37,14 +40,8 @@
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
     "autoprefixer": "^10.4.13",
-    "chokidar": "^3.5.3",
-    "csstype": "^3.1.1",
     "npm-run-all": "^4.1.5",
-    "postcss": "^8.4.21",
-    "postcss-cli": "^10.1.0",
-    "postcss-import": "^15.1.0",
-    "prettier": "^2.8.4",
-    "tailwindcss": "^3.2.7"
+    "prettier": "^2.8.4"
   },
   "files": [
     "src/**",

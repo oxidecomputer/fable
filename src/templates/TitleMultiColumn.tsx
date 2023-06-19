@@ -16,13 +16,13 @@ export const Template = ({ data }: { data: Schema }) => {
     <div className="page-padding flex flex-col">
       <div className="basis-1/2">
         {title && (
-          <h1 className="large-title text-accent">
+          <h1 className="large-title text-indigo-300">
             <Markdown content={title} />
           </h1>
         )}
       </div>
 
-      <hr className="mt-[60px] border-[var(--base-neutral-500)] -mx-[80px] w-[calc(100%+160px)]" />
+      <hr className="mt-[60px] border-neutral-600 -mx-[80px] w-[calc(100%+160px)]" />
 
       {text && (
         <div className="flex space-x-[60px]">
@@ -30,7 +30,7 @@ export const Template = ({ data }: { data: Schema }) => {
             <Markdown
               key={idx}
               content={col}
-              className="markdown mt-12 body-sm flex-grow basis-0"
+              className="markdown mt-4 body-sm flex-grow basis-0"
             />
           ))}
         </div>
