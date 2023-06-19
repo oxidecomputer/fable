@@ -59,7 +59,11 @@
     "url": "https://github.com/oxidecomputer/fable/issues"
   },
   "homepage": "https://github.com/oxidecomputer/fable#readme",
-  "description": "> **Warning** > WIP: Not usable as a library just yet",
-  "author": "",
-  "license": "ISC"
+  "description": "Fable is a TOML deck generator with custom templates and schema validation",
+  "author": "Oxide Computer Company <bots@oxidecomputer.com>",
+  "license": "MPL 2.0",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
 }

@@ -12,13 +12,13 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "export-pdf": "node exportPdf.js"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@oxide/fable": "file:../../",
     "npm-run-all": "^4.1.5",
     "puppeteer": "^19.7.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
-  }
+  },
+  "author": "Oxide Computer Company <bots@oxidecomputer.com>",
+  "license": "MPL 2.0"
 }
