@@ -1,14 +1,16 @@
 # Fable
 
-⚠️ **Warning**: Fable is a little internal experiment in a type of deck generator. It won't
-offer a comprehensive feature set or the robustness of a fully-developed library. But it
-aims to provide a flexible and intuitive tool for presentation creation. We greatly
-appreciate feedback, suggestions, and best of all contributions.
+> **Warning**: Fable is not much more than an internal experiment in a type of deck generator.
+> It won't offer a comprehensive feature set or the robustness of a fully-developed library.
+> But it aims to provide a flexible and intuitive tool for presentation creation. We greatly
+> appreciate feedback, suggestions, and best of all contributions.
 
 Fable is a deck generator that looks to offer an authoring experience as effortless as
 markdown presentation libraries while providing the flexibility to create more varied
 layouts. It utilizes TOML templates and content schema validation (via
 [zod](https://zod.dev/)) to ensure content accuracy and format adherence.
+
+![CleanShot 2023-06-19 at 19 07 36](https://github.com/oxidecomputer/fable/assets/4020798/101d86fe-faa7-483d-a325-f3c4756cce55)
 
 ## Key Features
 
