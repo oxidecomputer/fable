@@ -53,7 +53,7 @@ function Page({ data, scale, pageNumber }: any) {
         transformOrigin: '50% 50%',
       }}
     >
-      <div className="bg-default relative w-full h-full">
+      <div className="bg-neutral-900 relative w-full h-full">
         {errors ? (
           <div className="page-padding flex flex-col bg-error-secondary h-full">
             <div className="rounded-lg text-error mb-4 text-mono-md !text-xl">

@@ -37,7 +37,7 @@ text = """
 [[pages]]
 template = "FullPageDiagram"
 title = "Phoenix"
-font_size = "28px"
+diagram_font_size = "28px"
 diagram = """
                             .-==========
                          .-' O    =====
@@ -99,6 +99,7 @@ He sat atop the garden wall, his fur ruffled by the autumn breeze. <br>
 
 He watched as the leaves danced in the wind, their vibrant colors a symphony of beauty.
 """
+diagram_font_size = "24px"
 diagram = """
                  o   
                 .  

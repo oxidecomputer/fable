@@ -1,0 +1,201 @@
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-Italic.woff2') format('woff2');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter-SemiBoldItalic.woff2') format('woff2');
+  font-weight: 600;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Inter Display';
+  src: url('fonts/InterDisplay-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter Display';
+  src: url('fonts/InterDisplay-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter Display';
+  src: url('fonts/InterDisplay-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Inter Display';
+  src: url('fonts/InterDisplay-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: 'Inter Display', sans-serif;
+  text-wrap: balance;
+}
+
+.markdown img {
+  @apply rounded-lg max-w-full max-h-full object-cover mt-5 mb-5;
+}
+
+.page-padding {
+  @apply p-8;
+}
+
+.large-title {
+  @apply text-5xl font-light mb-12 pr-20;
+}
+
+.body-md {
+  @apply text-2xl text-neutral-400;
+}
+
+.body-padding p {
+  @apply pr-20;
+}
+
+.body-sm {
+  @apply text-base text-neutral-400;
+}
+
+.markdown {
+  @apply flex flex-col space-y-5;
+}
+
+.markdown > *:last-child {
+  @apply mb-0;
+}
+
+.error-table {
+  @apply font-mono text-base;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.error-table td,
+.error-table th {
+  @apply uppercase border border-neutral-400 text-left p-2;
+}
+
+.error-table th {
+  @apply bg-gray-300 text-neutral-400;
+}
+
+.error-table td {
+  @apply bg-gray-900;
+}
+
+.list-item {
+  @apply border-b border-neutral-400 text-3xl text-neutral-400 py-8 pr-20;
+}
+
+code:not(pre code) {
+  @apply text-neutral-400;
+  @apply border rounded text-sm border-gray-400 bg-gray-100 px-1 py-0 ml-1 mr-1;
+}
+
+em {
+  @apply text-indigo-300 not-italic;
+}
+
+strong {
+  @apply font-semibold text-neutral-200; /* Assuming text-default is black color */
+}
+
+ul,
+ol {
+  @apply ml-4; /* Adjust to closest standard Tailwind margin */
+}
+
+ul li::marker,
+ol li::marker {
+  @apply text-neutral-400; /* Assuming text-quaternary translates to some kind of gray color */
+}
+
+ul li,
+ol li {
+  @apply pl-2;
+}
+
+ul {
+  @apply list-disc;
+}
+
+ul ul li {
+  list-style-type: circle;
+}
+
+ul ul ul li {
+  list-style-type: square;
+}
+
+ul ul ul ul li {
+  list-style-type: disc;
+}
+
+ol {
+  @apply list-decimal;
+}
+
+ul .list-item:last-of-type {
+  @apply border-b-0 pb-0;
+}
+
+ul .list-item:first-of-type {
+  @apply pt-0;
+}
+
+pre {
+  @apply border border-neutral-600 rounded-lg p-5 mt-10 mb-5 leading-[1];
+}
+
+pre code {
+  @apply text-sm;
+}

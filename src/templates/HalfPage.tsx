@@ -9,7 +9,7 @@ export const Schema = z
     diagram: z.string(),
     image: z.string(),
     object_fit: z.string().optional(),
-    font_size: z.string().optional(),
+    diagram_font_size: z.string().optional(),
     text: z.string().optional(),
   })
   .partial()
@@ -20,7 +20,7 @@ export const Schema = z
 type Schema = z.infer<typeof Schema>
 
 export const Template = ({ data }: { data: Schema }) => {
-  const { title, object_fit, image, diagram, font_size, text } = data
+  const { title, object_fit, image, diagram, diagram_font_size, text } = data
 
   const fit = object_fit ? object_fit : 'cover'
 
@@ -28,7 +28,7 @@ export const Template = ({ data }: { data: Schema }) => {
     <div className="flex">
       <div className="w-1/2 page-padding flex flex-col justify-center space-y-[20px]">
         {title && (
-          <h1 className="large-title !mb-[20px] text-accent">
+          <h1 className="large-title !mb-[20px] text-indigo-300">
             <Markdown content={title} />
           </h1>
         )}
@@ -40,7 +40,7 @@ export const Template = ({ data }: { data: Schema }) => {
         )}
       </div>
 
-      <div className={`w-1/2 ${diagram ? 'bg-accent-secondary' : ''} relative`}>
+      <div className={`w-1/2 ${diagram ? 'bg-indigo-950' : ''} relative`}>
         {image ? (
           <img
             src={image}
@@ -50,8 +50,14 @@ export const Template = ({ data }: { data: Schema }) => {
             }}
           />
         ) : (
-          <pre className="h-full flex items-center justify-center !mt-0 !p-0 border-0 text-accent">
-            <code style={{ fontSize: font_size ? font_size : 'inherit' }}>{diagram}</code>
+          <pre
+            className="h-full flex items-center justify-center !mt-0 !p-0 border-0 text-indigo-300"
+            style={{
+              fontSize: diagram_font_size ? diagram_font_size : 'inherit',
+              lineHeight: 1.4,
+            }}
+          >
+            {diagram}
           </pre>
         )}
       </div>

@@ -101,7 +101,7 @@ function App() {
   }, [data])
 
   const pageNumber = (currentPage: number) => (
-    <div className="absolute bottom-[40px] right-[40px] opacity-40 text-2xl">
+    <div className="absolute bottom-[40px] right-[40px] opacity-40 text-xs">
       {currentPage} / {data.pages.length}
     </div>
   )
@@ -109,7 +109,9 @@ function App() {
   if (data && data.pages) {
     return (
       <div
-        className={`w-full h-full relative ${isFullscreen ? 'bg-default' : 'bg-[#333]'}`}
+        className={`w-full h-full relative ${
+          isFullscreen ? 'bg-neutral-900' : 'bg-[#333]'
+        }`}
       >
         {isPdf ? (
           [...Array(data.pages.length)].map((_e, i) => (
