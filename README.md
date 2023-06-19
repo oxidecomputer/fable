@@ -10,7 +10,7 @@ markdown presentation libraries while providing the flexibility to create more v
 layouts. It utilizes TOML templates and content schema validation (via
 [zod](https://zod.dev/)) to ensure content accuracy and format adherence.
 
-![CleanShot 2023-06-19 at 19 07 36](https://github.com/oxidecomputer/fable/assets/4020798/101d86fe-faa7-483d-a325-f3c4756cce55)
+![CleanShot 2023-06-19 at 19 07 36](https://github.com/oxidecomputer/fable/assets/4020798/f22a3bc9-9954-4846-849c-daa1878b3278)
 
 ## Key Features
 
