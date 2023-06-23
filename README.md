@@ -26,11 +26,12 @@ layouts. It utilizes TOML templates and content schema validation (via
 Specify a page template along with its own content schema (using [`zod`](https://zod.dev/))
 to validate the content and fields in the TOML file.
 
-````jsx
+```jsx
 export const Schema = z.object({
   title: z.string().optional,
   text: z.string(),
 });
+```
 
 ```toml
 [[pages]]
