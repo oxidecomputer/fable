@@ -780,22 +780,19 @@ h5 {
 }
 
 code:not(pre code) {
-  --tw-text-opacity: 1;
-  color: rgb(163 163 163 / var(--tw-text-opacity));
   margin-left: 0.25rem;
   margin-right: 0.25rem;
   border-radius: 0.25rem;
   border-width: 1px;
   --tw-border-opacity: 1;
-  border-color: rgb(156 163 175 / var(--tw-border-opacity));
+  border-color: rgb(75 85 99 / var(--tw-border-opacity));
   --tw-bg-opacity: 1;
-  background-color: rgb(243 244 246 / var(--tw-bg-opacity));
+  background-color: rgb(38 38 38 / var(--tw-bg-opacity));
   padding-left: 0.25rem;
   padding-right: 0.25rem;
   padding-top: 0px;
   padding-bottom: 0px;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  font-size: 0.825em;
 }
 
 em {

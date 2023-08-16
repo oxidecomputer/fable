@@ -142,8 +142,7 @@ h5 {
 }
 
 code:not(pre code) {
-  @apply text-neutral-400;
-  @apply border rounded text-sm border-gray-400 bg-gray-100 px-1 py-0 ml-1 mr-1;
+  @apply border rounded border-gray-600 bg-neutral-800 px-1 py-0 ml-1 mr-1 text-[0.825em];
 }
 
 em {
