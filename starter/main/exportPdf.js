@@ -9,8 +9,8 @@ import puppeteer from 'puppeteer'
   const pdf = await page.pdf({
     path: 'export.pdf',
     printBackground: true,
-    width: 1748,
-    height: 989,
+    width: '1920px',
+    height: '1080px',
   })
 
   await browser.close()
