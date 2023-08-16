@@ -1,9 +1,10 @@
 # Fable
 
-> **Warning**: Fable is not much more than an internal experiment in a type of deck generator.
-> It won't offer a comprehensive feature set or the robustness of a fully-developed library.
-> But it aims to provide a flexible and intuitive tool for presentation creation. We greatly
-> appreciate feedback, suggestions, and best of all contributions.
+> **Warning**: Fable is not much more than an internal experiment in a type of deck
+> generator. It won't offer a comprehensive feature set or the robustness of a
+> fully-developed library. But it aims to provide a flexible and intuitive tool for
+> presentation creation. We greatly appreciate feedback, suggestions, and best of all
+> contributions.
 
 Fable is a deck generator that looks to offer an authoring experience as effortless as
 markdown presentation libraries while providing the flexibility to create more varied
@@ -87,6 +88,8 @@ to create your own custom templates.
 _Markdown:_ Content enclosed within is parsed and rendered as Markdown.
 
 _FitText:_ Automatically resizes overflowing text to fit within its container.
+
+> **Info**: Currently not in use, needs improvements
 
 ## Stying
 

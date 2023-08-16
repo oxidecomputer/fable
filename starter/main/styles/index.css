@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @font-face {
   font-family: 'Inter';
   src: url('fonts/Inter-Regular.woff2') format('woff2');
@@ -95,6 +99,7 @@ h5 {
 
 .body-md {
   @apply text-2xl text-neutral-400;
+  line-height: 1.33;
 }
 
 .body-padding p {
@@ -146,17 +151,23 @@ em {
 }
 
 strong {
-  @apply font-semibold text-neutral-200; /* Assuming text-default is black color */
+  @apply font-semibold text-neutral-200;
+}
+
+.markdown ul,
+.markdown ol {
+  list-style: revert;
+  @apply ml-4;
 }
 
 ul,
 ol {
-  @apply ml-4; /* Adjust to closest standard Tailwind margin */
+  @apply ml-4;
 }
 
 ul li::marker,
 ol li::marker {
-  @apply text-neutral-400; /* Assuming text-quaternary translates to some kind of gray color */
+  @apply text-neutral-400;
 }
 
 ul li,

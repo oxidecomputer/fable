@@ -1,13 +1,13 @@
 {
   "name": "@oxide/fable",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "main": "scripts/start.js",
   "type": "module",
   "scripts": {
     "dev": "run-p dev:*",
     "dev:server": "npm run start --prefix starter/main",
     "dev:css": "npm run generate:css -- --watch",
-    "generate:css": "postcss styles/src/index.css --dir styles/dist",
+    "generate:css": "tailwindcss -i styles/src/index.css -o styles/dist/index.css",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "fmt": "prettier --write --ignore-path ./.gitignore  .",
@@ -18,7 +18,7 @@
     "@vitejs/plugin-react": "^3.1.0",
     "autoprefixer": "^10.4.13",
     "highlight.js": "^11.7.0",
-    "marked": "^4.2.12",
+    "marked": "^7.0.3",
     "mousetrap": "^1.6.5",
     "postcss": "^8.4.21",
     "postcss-cli": "^10.1.0",
@@ -46,7 +46,6 @@
   "files": [
     "src/**",
     "scripts/**",
-    "postcss.config.cjs",
     "tailwind.config.cjs",
     "vite.config.ts",
     "styles/dist/**"

@@ -10,9 +10,9 @@ const defaultTheme = require('tailwindcss/defaultTheme')
 module.exports = {
   content: [
     './src/**/*.{ts,tsx}',
-    process.env.NODE_ENV === 'production'
-      ? '../templates/*.jsx'
-      : './starter/main/templates/*.jsx',
+    './index.html',
+    './templates/*.jsx',
+    './starter/main/templates/*.jsx',
   ],
   theme: {
     extend: {

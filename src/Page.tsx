@@ -87,14 +87,4 @@ function Page({ data, scale, pageNumber }: any) {
   )
 }
 
-/** Get longest length for the column */
-const colWidth = (rows: z.ZodIssue[], colKey: keyof z.ZodIssue) => {
-  const lengths = rows.map((row) => {
-    const col = row[colKey]
-    return col ? col.toString().length : 0
-  })
-  lengths.sort()
-  return lengths[lengths.length - 1]
-}
-
 export default Page

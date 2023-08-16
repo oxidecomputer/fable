@@ -15,7 +15,6 @@ export const Template = ({ data }) => {
       <Markdown
         content={title}
         className="title text-[7rem] leading-[1.1] font-[300] text-center"
-        inline
       />
     </div>
   )

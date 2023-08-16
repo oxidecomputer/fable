@@ -11,6 +11,7 @@ export const Schema = z
     object_fit: z.string().optional(),
     diagram_font_size: z.string().optional(),
     text: z.string().optional(),
+    text_font_size: z.string().optional(),
   })
   .partial()
   .refine(({ diagram, image }) => diagram !== undefined || image !== undefined, {
@@ -20,7 +21,8 @@ export const Schema = z
 type Schema = z.infer<typeof Schema>
 
 export const Template = ({ data }: { data: Schema }) => {
-  const { title, object_fit, image, diagram, diagram_font_size, text } = data
+  const { title, object_fit, image, diagram, diagram_font_size, text, text_font_size } =
+    data
 
   const fit = object_fit ? object_fit : 'cover'
 
@@ -34,7 +36,7 @@ export const Template = ({ data }: { data: Schema }) => {
         )}
 
         {text && (
-          <div className="markdown body-md">
+          <div className="markdown body-md" style={{ fontSize: text_font_size }}>
             <Markdown content={text} />
           </div>
         )}

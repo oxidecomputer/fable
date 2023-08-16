@@ -1,14 +1,14 @@
 {
   "name": "fable-example",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "description": "",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "run-p start:*",
     "start:server": "node index.js",
-    "start:css": "npm run generate:css -- --watch",
-    "generate:css": "postcss styles/index.css -o public/styles.css",
+    "start:css": "NODE_ENV=production npm run generate:css -- --watch",
+    "generate:css": "tailwindcss -i styles/index.css -o public/styles.css",
     "test": "echo \"Error: no test specified\" && exit 1",
     "export-pdf": "node exportPdf.js"
   },
@@ -17,7 +17,8 @@
     "npm-run-all": "^4.1.5",
     "puppeteer": "^19.7.5",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.3.3"
   },
   "author": "Oxide Computer Company <bots@oxidecomputer.com>",
   "license": "MPL 2.0"

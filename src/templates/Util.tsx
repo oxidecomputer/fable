@@ -6,11 +6,9 @@ import type { ReactNode } from 'react'
 export const Markdown = ({
   content,
   className = '',
-  inline = false,
 }: {
   content: string
   className?: string
-  inline?: boolean
 }) => {
   const wrapper = useRef<HTMLDivElement>(null)
 
@@ -31,7 +29,7 @@ export const Markdown = ({
       ref={wrapper}
       className={`markdown ${className}`}
       dangerouslySetInnerHTML={{
-        __html: inline ? marked.parseInline(content) : marked.parse(content),
+        __html: marked.parse(content),
       }}
     />
   )
