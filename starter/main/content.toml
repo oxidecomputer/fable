@@ -7,15 +7,6 @@ title = "*The Unknown:* <br> Unveiling the Wonders <br> of the Universe"
 
 [[pages]]
 template = "Basic"
-title = "Outline"
-text = """
-- Context
-  - What is a rack scale computer?
-  - Why is network programmability important?
-"""
-
-[[pages]]
-template = "Basic"
 title = "A Journey Through the Cosmos"
 text = """
 - In the _vastness of space_, time and distance are but mere illusions

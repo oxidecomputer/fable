@@ -1,7 +1,7 @@
 {
   "name": "@oxide/fable",
-  "version": "0.1.4",
-  "main": "scripts/start.js",
+  "version": "0.1.5",
+  "main": "index.js",
   "type": "module",
   "scripts": {
     "dev": "run-p dev:*",
@@ -23,6 +23,7 @@
     "postcss": "^8.4.21",
     "postcss-cli": "^10.1.0",
     "postcss-import": "^15.1.0",
+    "puppeteer": "^21.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "table": "^6.8.1",
@@ -44,6 +45,7 @@
     "prettier": "^2.8.4"
   },
   "files": [
+    "index.js",
     "src/**",
     "scripts/**",
     "tailwind.config.cjs",

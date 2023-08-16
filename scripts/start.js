@@ -4,7 +4,7 @@ import { createServer } from 'vite'
 
 const __dirname = fileURLToPath(new URL('../', import.meta.url))
 
-const run = async (root) => {
+const start = async (root) => {
   process.env = { ...process.env, VITE_DIR: root }
 
   const server = await createServer({
@@ -19,4 +19,4 @@ const run = async (root) => {
   server.printUrls()
 }
 
-export default run
+export default start

@@ -1,6 +1,6 @@
 {
   "name": "@oxide/create-fable",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Creates a new [Fable](https://github.com/oxidecomputer/fable) presentation",
   "main": "index.js",
   "type": "module",
