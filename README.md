@@ -73,25 +73,56 @@ mode.
 
 ## Custom Templates
 
-Custom templates consist of:
+Drop a `.jsx` (or `.tsx`) file into your project's `templates/` directory and it will be
+auto-discovered. Each template module exports a `Schema` (a `zod` object) and a `Template`
+component:
 
-1. A template schema that validates whether the page's content matches the rendering
-   requirements of the template.
-2. A React component that handles the page content provided by the user.
+```jsx
+import { Markdown } from '@oxide/fable'
+import { z } from 'zod'
 
-Refer to this
-[starter example](https://github.com/oxidecomputer/fable/blob/main/starter/main/templates/Example.jsx)
-to create your own custom templates.
+export const Schema = z.object({ title: z.string() })
+
+export const Template = ({ data }) => (
+  <div className="page-padding flex items-center justify-center">
+    <Markdown content={data.title} className="text-[7rem] font-light" />
+  </div>
+)
+```
+
+Unknown TOML keys are caught as schema errors (the schema is parsed in strict mode), so
+typos surface as an in-page error table instead of silently rendering blank content.
 
 ### Template Utilities
 
-_Markdown:_ Content enclosed within is parsed and rendered as Markdown.
+Importable from `@oxide/fable`:
 
-_FitText:_ Automatically resizes overflowing text to fit within its container.
+- `Markdown` — parses its `content` prop as Markdown.
+- `FitText` — resizes overflowing text to fit its container.
 
-> **Info**: Currently not in use, needs improvements
+## Styling
 
-## Stying
+Fable supports [Tailwind CSS](https://tailwindcss.com/) out of the box — the Vite plugin
+wires up Tailwind via PostCSS and scans both the package's built-in templates and your
+project's `templates/` directory. No `tailwind.config` or `postcss.config` needed.
 
-Fable supports [Tailwind CSS](https://tailwindcss.com/) out of the box. You can also use the
-`styles.css` file.
+### Fonts
+
+Inter and Inter Display ship with the package, so a fresh project renders correctly with
+no setup. To swap fonts, drop a CSS file (e.g. `public/styles.css`) into your project and
+override the CSS variables:
+
+```css
+@font-face {
+  font-family: 'My Font';
+  src: url('/fonts/MyFont.woff2') format('woff2');
+}
+
+:root {
+  --fable-font-sans: 'My Font', sans-serif;
+  --fable-font-display: 'My Font', sans-serif;
+}
+```
+
+Link it from `index.html` (`<link rel="stylesheet" href="/styles.css">`) and the
+overrides take effect.

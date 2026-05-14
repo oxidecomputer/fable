@@ -1,15 +1,17 @@
 {
   "name": "@oxide/fable",
-  "version": "0.1.5",
-  "main": "index.js",
+  "version": "0.2.0",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugin": "./src/plugin.ts",
+    "./pdf": "./scripts/exportPdf.js",
+    "./styles": "./styles/src/index.css"
+  },
   "scripts": {
-    "dev": "run-p dev:*",
-    "dev:server": "npm run start --prefix starter/main",
-    "dev:css": "npm run generate:css -- --watch",
-    "generate:css": "tailwindcss -i styles/src/index.css -o styles/dist/index.css",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "dev": "npm run dev --prefix starter/main",
+    "build": "npm run build --prefix starter/main",
+    "preview": "npm run preview --prefix starter/main",
     "fmt": "prettier --write --ignore-path ./.gitignore  .",
     "fmt:check": "prettier --check --ignore-path ./.gitignore . ",
     "tsc": "tsc"
@@ -21,17 +23,15 @@
     "marked": "^7.0.3",
     "mousetrap": "^1.6.5",
     "postcss": "^8.4.21",
-    "postcss-cli": "^10.1.0",
-    "postcss-import": "^15.1.0",
     "puppeteer": "^21.0.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "table": "^6.8.1",
     "tailwindcss": "^3.3.2",
-    "typescript": "^4.9.3",
     "vite": "^4.1.0",
     "vite-plugin-toml": "^0.5.0",
     "zod": "^3.20.6"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.0.0",
@@ -41,16 +41,13 @@
     "@types/node": "^18.14.0",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^2.8.4"
+    "prettier": "^2.8.4",
+    "typescript": "^4.9.3"
   },
   "files": [
-    "index.js",
     "src/**",
     "scripts/**",
-    "tailwind.config.cjs",
-    "vite.config.ts",
-    "styles/dist/**"
+    "styles/src/**"
   ],
   "repository": {
     "type": "git",

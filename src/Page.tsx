@@ -1,49 +1,32 @@
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { z } from 'zod'
 
-type Component = {
-  template: ({ data, className }: { data: any; className?: string }) => JSX.Element
-  schema: any
+export type TemplateModule = {
+  Template: (props: { data: any; className?: string }) => JSX.Element
+  Schema?: z.ZodTypeAny
 }
 
-type Error = z.ZodIssue
+export type TemplateMap = Record<string, TemplateModule>
 
-function Page({ data, scale, pageNumber }: any) {
-  const [component, setComponent] = useState<Component>()
-  const [errors, setErrors] = useState<Error[]>()
+type Props = {
+  data: any
+  scale: number
+  templates: TemplateMap
+  pageNumber: ReactNode
+}
 
-  useEffect(() => {
-    async function getTemplate() {
-      const dir = data.custom_template ? `${window.ENV.dir}templates/` : './templates/'
-      const suffix = data.custom_template ? 'jsx' : 'tsx'
+export default function Page({ data, scale, templates, pageNumber }: Props) {
+  const template = templates[data.template]
 
-      const template = await import(/* @vite-ignore */ `${dir}${data.template}.${suffix}`)
-      const schema = template.Schema
-
-      if (schema) {
-        const parsedMeta = schema.safeParse(data)
-
-        if (!parsedMeta.success) {
-          console.error("Can't parse slide data")
-          setErrors(parsedMeta.error.issues)
-          console.log(parsedMeta)
-        }
-      }
-
-      setComponent({
-        template: template.Template,
-        schema: schema,
-      })
-    }
-
-    if (!component && data) {
-      getTemplate()
-    }
-  }, [component, data])
-
-  if (!component || !data) {
-    return null
-  }
+  const errors = useMemo<z.ZodIssue[] | null>(() => {
+    if (!template?.Schema) return null
+    const { template: _t, custom_template: _ct, ...rest } = data
+    const schema =
+      template.Schema instanceof z.ZodObject ? template.Schema.strict() : template.Schema
+    const parsed = schema.safeParse(rest)
+    return parsed.success ? null : parsed.error.issues
+  }, [template, data])
 
   return (
     <main
@@ -54,31 +37,39 @@ function Page({ data, scale, pageNumber }: any) {
       }}
     >
       <div className="bg-neutral-900 relative w-full h-full">
-        {errors ? (
+        {!template ? (
+          <div className="page-padding flex flex-col bg-error-secondary h-full">
+            <div className="rounded-lg text-error mb-4 text-mono-md !text-xl">
+              Unknown template: <code>{String(data.template)}</code>
+            </div>
+          </div>
+        ) : errors ? (
           <div className="page-padding flex flex-col bg-error-secondary h-full">
             <div className="rounded-lg text-error mb-4 text-mono-md !text-xl">
               Content errors
             </div>
             <table className="error-table">
-              {errors.map((error) => (
-                <>
-                  <tr>
-                    <th>Path</th>
-                    <th>Code</th>
-                    <th>Message</th>
-                  </tr>
-                  <tr>
-                    <td>{error.path}</td>
+              <thead>
+                <tr>
+                  <th>Path</th>
+                  <th>Code</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                {errors.map((error, i) => (
+                  <tr key={i}>
+                    <td>{error.path.join('.')}</td>
                     <td>{error.code}</td>
                     <td>{error.message}</td>
                   </tr>
-                </>
-              ))}
+                ))}
+              </tbody>
             </table>
           </div>
         ) : (
           <div className="w-full h-full children:w-full children:h-full children:overflow-hidden">
-            <component.template data={data} />
+            <template.Template data={data} />
           </div>
         )}
         {pageNumber}
@@ -86,5 +77,3 @@ function Page({ data, scale, pageNumber }: any) {
     </main>
   )
 }
-
-export default Page

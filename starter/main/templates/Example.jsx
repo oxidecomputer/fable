@@ -1,7 +1,6 @@
 import React from 'react'
+import { Markdown } from '@oxide/fable'
 import { z } from 'zod'
-
-import { Markdown } from '~/Util'
 
 export const Schema = z.object({
   title: z.string(),

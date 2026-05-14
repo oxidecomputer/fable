@@ -13,8 +13,6 @@ type Schema = z.infer<typeof Schema>
 export const Template = ({ data }: { data: Schema }) => {
   const { text, title, text_font_size } = data
 
-  console.log(text)
-
   return (
     <div className="page-padding flex flex-col">
       {title && (

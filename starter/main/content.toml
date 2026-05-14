@@ -101,13 +101,13 @@ He watched as the leaves danced in the wind, their vibrant colors a symphony of 
 """
 diagram_font_size = "24px"
 diagram = """
-                 o   
-                .  
-              ,'  `.  
+                 o
+                .
+              ,'  `.
             ,'      `.
           ,'          `.
-        ,'              `. 
-      ,'                  `. 
+        ,'              `.
+      ,'                  `.
     ,'                      `.
  _,'__________________________`._
 |.------------------------------.|

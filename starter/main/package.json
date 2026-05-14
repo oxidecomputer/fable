@@ -1,23 +1,18 @@
 {
   "name": "fable-example",
-  "version": "0.1.5",
-  "description": "",
-  "main": "index.js",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
-    "start": "run-p start:*",
-    "start:server": "node index.js",
-    "start:css": "NODE_ENV=production npm run generate:css -- --watch",
-    "generate:css": "tailwindcss -i styles/index.css -o public/styles.css",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "export-pdf": "node -e \"(async () => { const dir = process.argv[1] || process.cwd(); const { exportPdf } = await import('@oxide/fable'); exportPdf(dir); })();\" $1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "export-pdf": "vite build && node -e \"import('@oxide/fable/pdf').then(m => m.default(process.cwd()))\""
   },
   "dependencies": {
     "@oxide/fable": "file:../../",
-    "npm-run-all": "^4.1.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwindcss": "^3.3.3"
+    "vite": "^4.1.0"
   },
   "author": "Oxide Computer Company <bots@oxidecomputer.com>",
   "license": "MPL 2.0"
