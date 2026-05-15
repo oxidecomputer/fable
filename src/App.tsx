@@ -1,6 +1,15 @@
+import { useValue } from '@tldraw/state-react'
 import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
+import EditShell from './edit/EditShell'
+import { startPersist } from './edit/persist'
+import {
+  $currentIndex,
+  $deck,
+  $filenames,
+  initializeStore,
+} from './edit/store'
 import Page from './Page'
 import type { TemplateMap, TemplateModule } from './Page'
 import { useKey } from './hooks/use-key'
@@ -31,18 +40,49 @@ type Content = {
 
 type Props = {
   content: Content
+  filenames?: string[]
   customTemplates?: TemplateMap
 }
 
-export default function App({ content, customTemplates = {} }: Props) {
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [scale, setScale] = useState(1.0)
-  const [currentPage, setCurrentPage] = useState(0)
+const EDIT_SIDEBAR_WIDTH = 260 + 340
 
+export default function App({ content, filenames = [], customTemplates = {} }: Props) {
   const templates = useMemo(
     () => ({ ...builtInTemplates, ...customTemplates }),
     [customTemplates],
   )
+
+  const isPdf = useMemo(() => {
+    const params = new URL(document.location.toString()).searchParams
+    return params.get('pdf') !== null
+  }, [])
+
+  const isEdit = useMemo(() => {
+    const params = new URL(document.location.toString()).searchParams
+    return params.get('edit') !== null
+  }, [])
+
+  if (isEdit) initializeStore(content, filenames, templates)
+
+  return isEdit ? (
+    <EditView templates={templates} />
+  ) : (
+    <PresentView content={content} templates={templates} isPdf={isPdf} />
+  )
+}
+
+function PresentView({
+  content,
+  templates,
+  isPdf,
+}: {
+  content: Content
+  templates: TemplateMap
+  isPdf: boolean
+}) {
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [scale, setScale] = useState(1.0)
+  const [currentPage, setCurrentPage] = useState(0)
 
   useMemo(() => Schema.parse(content), [content])
 
@@ -69,11 +109,6 @@ export default function App({ content, customTemplates = {} }: Props) {
   useKey('left', prevPage)
   useKey('right', nextPage)
   useKey('f', enterFullscreen)
-
-  const isPdf = useMemo(() => {
-    const params = new URL(document.location.toString()).searchParams
-    return params.get('pdf')
-  }, [])
 
   useEffect(() => {
     function onFullscreenChange() {
@@ -111,13 +146,12 @@ export default function App({ content, customTemplates = {} }: Props) {
     }
   }, [content])
 
+  const showPageNumbers = !!content.config?.page_numbers
   const pageNumber = (n: number) => (
     <div className="absolute bottom-[40px] right-[40px] opacity-40 text-xs">
       {n} / {content.pages.length}
     </div>
   )
-
-  const showPageNumbers = !!content.config?.page_numbers
 
   return (
     <div
@@ -145,5 +179,70 @@ export default function App({ content, customTemplates = {} }: Props) {
         />
       )}
     </div>
+  )
+}
+
+function EditView({ templates }: { templates: TemplateMap }) {
+  const deck = useValue($deck)
+  const currentIndex = useValue($currentIndex)
+  const [scale, setScale] = useState(1.0)
+
+  useEffect(() => {
+    startPersist()
+  }, [])
+
+  useEffect(() => {
+    function checkScale() {
+      const stageWidth = window.innerWidth - EDIT_SIDEBAR_WIDTH
+      const widthScale = stageWidth / 1920
+      const heightScale = window.innerHeight / 1080
+      setScale((widthScale < heightScale ? widthScale : heightScale) * 0.9)
+    }
+    checkScale()
+    addEventListener('resize', checkScale)
+    return () => removeEventListener('resize', checkScale)
+  }, [])
+
+  const prevPage = () => {
+    const i = $currentIndex.get()
+    if (i > 0) $currentIndex.set(i - 1)
+  }
+  const nextPage = () => {
+    const i = $currentIndex.get()
+    if (i < $deck.get().pages.length - 1) $currentIndex.set(i + 1)
+  }
+  useKey('left', prevPage)
+  useKey('right', nextPage)
+  useKey('mod+up', prevPage)
+  useKey('mod+down', nextPage)
+
+  const showPageNumbers = !!deck.config?.page_numbers
+  const data = deck.pages[currentIndex]
+  const total = deck.pages.length
+
+  return (
+    <EditShell>
+      <div className="w-full h-full relative bg-[#333]">
+        {data ? (
+          <Page
+            key={`${currentIndex}-${$filenames.get()[currentIndex] ?? ''}`}
+            data={data}
+            scale={scale}
+            templates={templates}
+            pageNumber={
+              showPageNumbers ? (
+                <div className="absolute bottom-[40px] right-[40px] opacity-40 text-xs">
+                  {currentIndex + 1} / {total}
+                </div>
+              ) : null
+            }
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm">
+            No pages — click “add page” in the sidebar.
+          </div>
+        )}
+      </div>
+    </EditShell>
   )
 }

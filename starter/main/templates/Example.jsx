@@ -1,4 +1,3 @@
-import React from 'react'
 import { Markdown } from '@oxide/fable'
 import { z } from 'zod'
 

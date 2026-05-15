@@ -1,5 +1,4 @@
-import { useMemo } from 'react'
-import type { ReactNode } from 'react'
+import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { z } from 'zod'
 
 export type TemplateModule = {
@@ -16,17 +15,45 @@ type Props = {
   pageNumber: ReactNode
 }
 
+class TemplateErrorBoundary extends Component<
+  { resetKey: unknown; children: ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  componentDidUpdate(prev: { resetKey: unknown }) {
+    if (prev.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null })
+    }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Template render error', error, info)
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="page-padding flex flex-col bg-error-secondary h-full">
+          <div className="rounded-lg text-error mb-4 text-mono-md !text-xl">
+            Template error
+          </div>
+          <pre className="text-mono-md text-error whitespace-pre-wrap">
+            {this.state.error.message}
+          </pre>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function Page({ data, scale, templates, pageNumber }: Props) {
   const template = templates[data.template]
-
-  const errors = useMemo<z.ZodIssue[] | null>(() => {
-    if (!template?.Schema) return null
-    const { template: _t, custom_template: _ct, ...rest } = data
-    const schema =
-      template.Schema instanceof z.ZodObject ? template.Schema.strict() : template.Schema
-    const parsed = schema.safeParse(rest)
-    return parsed.success ? null : parsed.error.issues
-  }, [template, data])
 
   return (
     <main
@@ -43,33 +70,11 @@ export default function Page({ data, scale, templates, pageNumber }: Props) {
               Unknown template: <code>{String(data.template)}</code>
             </div>
           </div>
-        ) : errors ? (
-          <div className="page-padding flex flex-col bg-error-secondary h-full">
-            <div className="rounded-lg text-error mb-4 text-mono-md !text-xl">
-              Content errors
-            </div>
-            <table className="error-table">
-              <thead>
-                <tr>
-                  <th>Path</th>
-                  <th>Code</th>
-                  <th>Message</th>
-                </tr>
-              </thead>
-              <tbody>
-                {errors.map((error, i) => (
-                  <tr key={i}>
-                    <td>{error.path.join('.')}</td>
-                    <td>{error.code}</td>
-                    <td>{error.message}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         ) : (
           <div className="w-full h-full children:w-full children:h-full children:overflow-hidden">
-            <template.Template data={data} />
+            <TemplateErrorBoundary resetKey={data}>
+              <template.Template data={data} />
+            </TemplateErrorBoundary>
           </div>
         )}
         {pageNumber}
