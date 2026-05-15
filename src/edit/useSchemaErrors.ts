@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { z } from 'zod'
+
 import type { TemplateModule } from '../Page'
 
 export function useSchemaErrors(

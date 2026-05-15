@@ -22,7 +22,7 @@ export const Template = ({ data }: { data: Schema }) => {
         )}
       </div>
 
-      <hr className="mt-[60px] border-neutral-600 -mx-[80px] w-[calc(100%+160px)]" />
+      <hr className="mt-[60px] border-stage-600 -mx-[80px] w-[calc(100%+160px)]" />
 
       {text && (
         <div className="flex space-x-[60px]">

@@ -5,13 +5,12 @@ import { Markdown } from './Util'
 export const Schema = z.object({
   title: z.string().optional(),
   text: z.string().optional(),
-  text_font_size: z.string().optional(),
 })
 
 type Schema = z.infer<typeof Schema>
 
 export const Template = ({ data }: { data: Schema }) => {
-  const { text, title, text_font_size } = data
+  const { text, title } = data
 
   return (
     <div className="page-padding flex flex-col">
@@ -22,10 +21,7 @@ export const Template = ({ data }: { data: Schema }) => {
       )}
 
       {text && (
-        <div
-          className="markdown body-md body-padding flex-grow"
-          style={{ fontSize: text_font_size }}
-        >
+        <div className="markdown body-md body-padding flex-grow">
           <Markdown content={text} />
         </div>
       )}

@@ -63,7 +63,7 @@ export default function Page({ data, scale, templates, pageNumber }: Props) {
         transformOrigin: '50% 50%',
       }}
     >
-      <div className="bg-neutral-900 relative w-full h-full">
+      <div className="fable-stage bg-stage-900 relative w-full h-full">
         {!template ? (
           <div className="page-padding flex flex-col bg-error-secondary h-full">
             <div className="rounded-lg text-error mb-4 text-mono-md !text-xl">

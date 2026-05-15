@@ -4,12 +4,6 @@ title: Mr. Whiskers
 diagram_font_size: 24px
 ---
 
-::: text
-He sat atop the garden wall, his fur ruffled by the autumn breeze. <br>
-
-He watched as the leaves danced in the wind, their vibrant colors a symphony of beauty.
-:::
-
 ::: diagram
                  o
                 .
@@ -36,4 +30,10 @@ He watched as the leaves danced in the wind, their vibrant colors a symphony of 
 ||     i-._~·-..·..-·~_.-i   adl||
 ||______________________________||
 `--------------------------------'
+:::
+
+::: text
+He sat atop the garden wall, his fur ruffled by the autumn breeze. <br>
+
+He watched as the leaves danced in the wind, their vibrant colors a symphony of beauty.
 :::

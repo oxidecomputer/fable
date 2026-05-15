@@ -1,12 +1,9 @@
-import autoprefixer from 'autoprefixer'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import tailwindcss from 'tailwindcss'
-import defaultTheme from 'tailwindcss/defaultTheme.js'
-import tailwindPlugin from 'tailwindcss/plugin.js'
 import type { Connect, Plugin, PluginOption, ViteDevServer } from 'vite'
-import react from '@vitejs/plugin-react'
 import YAML from 'yaml'
 
 export type FableOptions = {
@@ -18,6 +15,7 @@ export type FableOptions = {
 
 type PageData = Record<string, any> & { template: string }
 type Content = {
+  title?: string
   config?: { page_numbers?: boolean }
   pages: PageData[]
 }
@@ -107,9 +105,7 @@ function serializePage(data: PageData): string {
   if (useSingleBody) {
     body = String(rest.text ?? '')
   } else if (longFormKeys.length > 0) {
-    body = longFormKeys
-      .map((k) => `::: ${k}\n${String(rest[k] ?? '')}\n:::`)
-      .join('\n\n')
+    body = longFormKeys.map((k) => `::: ${k}\n${String(rest[k] ?? '')}\n:::`).join('\n\n')
   }
 
   return `---\n${yamlText}\n---\n${body ? `\n${body}\n` : ''}`
@@ -145,6 +141,7 @@ async function loadDeck(
   }
 
   const content: Content = { pages }
+  if (typeof deck.title === 'string') content.title = deck.title
   if (deck.config) content.config = deck.config
   return { content, filenames, files }
 }
@@ -166,6 +163,7 @@ async function serializeDeck(
     await writeAtomic(filePath, serializePage(content.pages[i]))
   }
   const deckPayload: Record<string, any> = {}
+  if (content.title) deckPayload.title = content.title
   if (content.config) deckPayload.config = content.config
   deckPayload.pages = filenames
   await writeAtomic(
@@ -278,33 +276,6 @@ export default function fable(options: FableOptions = {}): PluginOption {
         server: {
           fs: { allow: [packageRoot] },
         },
-        css: {
-          postcss: {
-            plugins: [
-              tailwindcss({
-                content: [
-                  path.join(packageRoot, 'src/**/*.{ts,tsx}'),
-                  `./${templatesDir}/**/*.{jsx,tsx}`,
-                  `./${contentDir}/**/*.md`,
-                  './index.html',
-                ],
-                theme: {
-                  extend: {
-                    fontFamily: {
-                      sans: ['Inter', ...defaultTheme.fontFamily.sans],
-                    },
-                  },
-                },
-                plugins: [
-                  tailwindPlugin(({ addVariant }) => {
-                    addVariant('children', '& > *')
-                  }),
-                ],
-              }),
-              autoprefixer(),
-            ],
-          },
-        },
       }
     },
 
@@ -312,17 +283,21 @@ export default function fable(options: FableOptions = {}): PluginOption {
       attachContentMiddleware(server, projectRoot, ignore)
     },
 
-    handleHotUpdate({ file, server }) {
-      const sep = path.sep
-      const contentMarker = `${sep}content${sep}`
-      if (Date.now() < ignore.ignoreUntil && file.includes(contentMarker)) {
-        return []
-      }
+    hotUpdate({ file, server }) {
       const contentPath = path.join(projectRoot, contentDir)
-      if (file.startsWith(contentPath)) {
-        server.ws.send({ type: 'full-reload' })
-        return []
-      }
+      if (!file.startsWith(contentPath)) return
+
+      // Returning [] from hotUpdate skips vite's default module-graph
+      // invalidation, so invalidate the virtual entry explicitly. Without
+      // this, a refresh after our own PUT would serve the stale module and
+      // overwrite the new state with the old.
+      const entry = server.moduleGraph.getModuleById(RESOLVED_ENTRY)
+      if (entry) server.moduleGraph.invalidateModule(entry)
+
+      if (Date.now() < ignore.ignoreUntil) return []
+
+      server.ws.send({ type: 'full-reload' })
+      return []
     },
 
     resolveId(id) {
@@ -376,5 +351,5 @@ if (el) {
     },
   }
 
-  return [react(), fablePlugin]
+  return [react(), tailwindcss(), fablePlugin]
 }

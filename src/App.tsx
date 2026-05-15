@@ -2,16 +2,12 @@ import { useValue } from '@tldraw/state-react'
 import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
-import EditShell from './edit/EditShell'
-import { startPersist } from './edit/persist'
-import {
-  $currentIndex,
-  $deck,
-  $filenames,
-  initializeStore,
-} from './edit/store'
 import Page from './Page'
 import type { TemplateMap, TemplateModule } from './Page'
+import EditShell from './edit/EditShell'
+import { redo, undo } from './edit/history'
+import { startPersist } from './edit/persist'
+import { $currentIndex, $deck, $filenames, initializeStore } from './edit/store'
 import { useKey } from './hooks/use-key'
 import * as Basic from './templates/Basic'
 import * as Cover from './templates/Cover'
@@ -44,7 +40,7 @@ type Props = {
   customTemplates?: TemplateMap
 }
 
-const EDIT_SIDEBAR_WIDTH = 260 + 340
+const EDIT_SIDEBAR_WIDTH = 300 + 340
 
 export default function App({ content, filenames = [], customTemplates = {} }: Props) {
   const templates = useMemo(
@@ -108,6 +104,8 @@ function PresentView({
 
   useKey('left', prevPage)
   useKey('right', nextPage)
+  useKey('up', prevPage)
+  useKey('down', nextPage)
   useKey('f', enterFullscreen)
 
   useEffect(() => {
@@ -148,16 +146,14 @@ function PresentView({
 
   const showPageNumbers = !!content.config?.page_numbers
   const pageNumber = (n: number) => (
-    <div className="absolute bottom-[40px] right-[40px] opacity-40 text-xs">
+    <div className="absolute bottom-[40px] right-[40px] opacity-40 text-sans-sm">
       {n} / {content.pages.length}
     </div>
   )
 
   return (
     <div
-      className={`w-full h-full relative ${
-        isFullscreen ? 'bg-neutral-900' : 'bg-[#333]'
-      }`}
+      className={`w-full h-full relative ${isFullscreen ? 'bg-stage-900' : 'bg-[#333]'}`}
     >
       {isPdf ? (
         content.pages.map((data, i) => (
@@ -187,9 +183,7 @@ function EditView({ templates }: { templates: TemplateMap }) {
   const currentIndex = useValue($currentIndex)
   const [scale, setScale] = useState(1.0)
 
-  useEffect(() => {
-    startPersist()
-  }, [])
+  useEffect(() => startPersist(), [])
 
   useEffect(() => {
     function checkScale() {
@@ -203,6 +197,34 @@ function EditView({ templates }: { templates: TemplateMap }) {
     return () => removeEventListener('resize', checkScale)
   }, [])
 
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (deck.pages.length === 0) {
+      url.searchParams.delete('page')
+    } else {
+      url.searchParams.set('page', String(currentIndex + 1))
+    }
+    window.history.replaceState(null, '', url.toString())
+  }, [currentIndex, deck.pages.length])
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey
+      if (!mod) return
+      const key = e.key.toLowerCase()
+      if (key !== 'z' && key !== 'y') return
+      // Defer to CodeMirror when focus is inside its editor.
+      const target = e.target as Element | null
+      if (target?.closest?.('.cm-editor')) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (key === 'y' || (key === 'z' && e.shiftKey)) redo()
+      else undo()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [])
+
   const prevPage = () => {
     const i = $currentIndex.get()
     if (i > 0) $currentIndex.set(i - 1)
@@ -213,8 +235,8 @@ function EditView({ templates }: { templates: TemplateMap }) {
   }
   useKey('left', prevPage)
   useKey('right', nextPage)
-  useKey('mod+up', prevPage)
-  useKey('mod+down', nextPage)
+  useKey('up', prevPage)
+  useKey('down', nextPage)
 
   const showPageNumbers = !!deck.config?.page_numbers
   const data = deck.pages[currentIndex]
@@ -231,15 +253,15 @@ function EditView({ templates }: { templates: TemplateMap }) {
             templates={templates}
             pageNumber={
               showPageNumbers ? (
-                <div className="absolute bottom-[40px] right-[40px] opacity-40 text-xs">
+                <div className="absolute bottom-[40px] right-[40px] opacity-40 text-sans-sm">
                   {currentIndex + 1} / {total}
                 </div>
               ) : null
             }
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm">
-            No pages — click “add page” in the sidebar.
+          <div className="absolute inset-0 flex items-center justify-center text-quaternary text-mono-xs">
+            No pages — click “new slide” in the sidebar.
           </div>
         )}
       </div>

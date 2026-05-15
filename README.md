@@ -31,7 +31,7 @@ to validate the content and fields in the TOML file.
 export const Schema = z.object({
   title: z.string().optional,
   text: z.string(),
-});
+})
 ```
 
 ```toml
@@ -46,7 +46,7 @@ text = """
 - They are **united** in their quest for knowledge and understanding
 - The universe itself is our teacher, and its secrets our endless source of inspiration
 """
-````
+```
 
 The `template` attribute in your TOML file should correspond to the template component name.
 Fable provides
@@ -108,8 +108,8 @@ project's `templates/` directory. No `tailwind.config` or `postcss.config` neede
 
 ### Fonts
 
-Inter and Inter Display ship with the package, so a fresh project renders correctly with
-no setup. To swap fonts, drop a CSS file (e.g. `public/styles.css`) into your project and
+Inter and Inter Display ship with the package, so a fresh project renders correctly with no
+setup. To swap fonts, drop a CSS file (e.g. `public/styles.css`) into your project and
 override the CSS variables:
 
 ```css
@@ -124,5 +124,5 @@ override the CSS variables:
 }
 ```
 
-Link it from `index.html` (`<link rel="stylesheet" href="/styles.css">`) and the
-overrides take effect.
+Link it from `index.html` (`<link rel="stylesheet" href="/styles.css">`) and the overrides
+take effect.

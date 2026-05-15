@@ -1,7 +1,8 @@
 import { useValue } from '@tldraw/state-react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 
 import PageList from './PageList'
+import RawEditor from './RawEditor'
 import SchemaForm from './SchemaForm'
 import {
   $currentIndex,
@@ -16,17 +17,43 @@ import { useSchemaErrors } from './useSchemaErrors'
 type Props = { children: ReactNode }
 
 const STATUS_LABEL: Record<string, string> = {
-  idle: 'Editing…',
-  saving: 'Saving…',
+  idle: 'Editing',
+  saving: 'Saving',
   saved: 'Saved',
   error: 'Save failed',
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  idle: 'text-neutral-400',
-  saving: 'text-indigo-300',
-  saved: 'text-emerald-400',
-  error: 'text-red-400',
+  idle: 'text-quaternary',
+  saving: 'text-accent-secondary',
+  saved: 'text-accent',
+  error: 'text-destructive',
+}
+
+const BRAND = ['F', 'A', 'B', 'L', 'E']
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-mono-xs px-3 py-2 border-b -mb-px ${
+        active
+          ? 'text-default border-accent-secondary'
+          : 'text-quaternary border-transparent hover:text-default'
+      }`}
+    >
+      {children}
+    </button>
+  )
 }
 
 export default function EditShell({ children }: Props) {
@@ -34,6 +61,7 @@ export default function EditShell({ children }: Props) {
   const templates = useValue($templates)
   const status = useValue($saveStatus)
   const index = useValue($currentIndex)
+  const [tab, setTab] = useState<'content' | 'source'>('content')
 
   const template = page ? templates[page.template] : undefined
   const errors = useSchemaErrors(template, page ?? {})
@@ -41,18 +69,17 @@ export default function EditShell({ children }: Props) {
   if (errors) for (const e of errors) if (e.path[0]) errorKeys.add(String(e.path[0]))
 
   return (
-    <div className="flex h-full">
-      <aside className="w-[300px] shrink-0 border-r border-neutral-700 overflow-y-auto bg-neutral-800 text-neutral-200">
-        <header className="px-3 py-2 border-b border-neutral-700 sticky top-0 bg-neutral-800 z-10">
-          <span className="text-xs font-semibold tracking-wide">Fable Editor</span>
-        </header>
-        <PageList />
+    <div className="fable-editor flex h-full">
+      <aside className="w-[300px] shrink-0 flex flex-col border-r border-default overflow-hidden bg-raise text-default">
+        <div className="flex-1 overflow-y-auto">
+          <PageList />
+        </div>
       </aside>
 
-      <div className="flex-1 relative">
+      <div className="flex-1 stage relative bg-default">
         {children}
         {errors && errors.length > 0 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 max-w-[80%] rounded border border-amber-900/50 bg-amber-900/30 px-3 py-1.5 text-xs text-amber-300/90 backdrop-blur-sm shadow-lg">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 max-w-[80%] rounded border bg-notice text-notice border-notice px-3 py-1.5 text-sans-sm backdrop-blur-sm shadow-lg">
             <div className="font-medium mb-0.5">
               {errors.length} schema {errors.length === 1 ? 'issue' : 'issues'}
             </div>
@@ -67,28 +94,32 @@ export default function EditShell({ children }: Props) {
         )}
       </div>
 
-      <aside className="w-[340px] shrink-0 border-l border-neutral-700 overflow-y-auto bg-neutral-800 text-neutral-200">
-        <header className="px-3 py-2 flex items-center justify-between border-b border-neutral-700 sticky top-0 bg-neutral-800 z-10">
-          <span className="text-xs font-semibold tracking-wide">Content</span>
-          <span className={`text-xs ${STATUS_COLOR[status] ?? ''}`}>
+      <aside className="w-[340px] shrink-0 flex flex-col border-l border-default bg-raise text-default">
+        <header className="shrink-0 flex items-center justify-between border-b border-default bg-raise pr-3">
+          <div className="flex">
+            <TabButton active={tab === 'content'} onClick={() => setTab('content')}>
+              Content
+            </TabButton>
+            <TabButton active={tab === 'source'} onClick={() => setTab('source')}>
+              Source
+            </TabButton>
+          </div>
+          <span className={`text-mono-xs ${STATUS_COLOR[status] ?? ''}`}>
             {STATUS_LABEL[status] ?? status}
           </span>
         </header>
 
-        <section className="p-3">
-          {page ? (
+        <section className="flex-1 min-h-0 flex flex-col p-3">
+          {!page ? (
+            <div className="text-mono-xs text-quaternary italic">No page selected</div>
+          ) : tab === 'content' ? (
             <>
-              <div className="text-[11px] uppercase tracking-wide text-neutral-400 mb-1">
-                Page {index + 1}
-              </div>
               <label className="block mb-3">
-                <span className="block text-[11px] uppercase tracking-wide text-neutral-400 mb-1">
-                  Template
-                </span>
+                <span className="block text-mono-xs text-quaternary mb-1">Template</span>
                 <select
                   value={page.template ?? ''}
                   onChange={(e) => switchTemplate(index, e.target.value)}
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded text-xs px-2 py-1 text-neutral-100"
+                  className="w-full bg-default border border-default rounded text-sans-sm px-2 py-1.5 text-default focus:outline-none focus:border-accent-secondary"
                 >
                   {Object.keys(templates)
                     .sort()
@@ -110,7 +141,7 @@ export default function EditShell({ children }: Props) {
               />
             </>
           ) : (
-            <div className="text-xs text-neutral-500 italic">No page selected</div>
+            <RawEditor />
           )}
         </section>
       </aside>

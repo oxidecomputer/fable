@@ -1,7 +1,7 @@
 import { react } from '@tldraw/state'
+
 import { $deck, $filenames, $saveStatus } from './store'
 
-let firstRun = true
 let pendingTimer: ReturnType<typeof setTimeout> | null = null
 
 async function flush(content: any, filenames: string[]) {
@@ -25,11 +25,12 @@ async function flush(content: any, filenames: string[]) {
 }
 
 export function startPersist() {
-  react('fable-persist', () => {
+  let isFirst = true
+  return react('fable-persist', () => {
     const deck = $deck.get()
     const filenames = $filenames.get()
-    if (firstRun) {
-      firstRun = false
+    if (isFirst) {
+      isFirst = false
       return
     }
     if (pendingTimer) clearTimeout(pendingTimer)

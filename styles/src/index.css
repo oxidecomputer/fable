@@ -1,10 +1,77 @@
+/* Tailwind v4 + Oxide design system. */
+
+@import 'tailwindcss';
+
+/* The package lives in node_modules from the consumer's POV, so Tailwind's
+ * auto source detection skips it. Add an explicit @source so the built-in
+ * templates' utility classes get emitted. Path is resolved relative to
+ * this CSS file. Consumer-side templates / index.html are picked up by
+ * Tailwind's default detection from the project root. */
+@source '../../src/**/*.{ts,tsx}';
+
+@import '@oxide/design-system/styles/tailwind.css';
+@import '@oxide/design-system/styles/preflight.css' layer(base);
+@import '@oxide/design-system/styles/main.css';
+@import '@oxide/design-system/styles/dark.css';
+
 @import './lib/highlight.css';
 @import './lib/pdf.css';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@custom-variant children (& > *);
 
+/* Slide-template palette — preserves the look of the deck templates which
+ * predate the design-system integration. Values mirror Tailwind v3's
+ * `neutral` scale; we use a different name so the design-system's own
+ * surface tokens (which reference --color-neutral-*) keep working. */
+@theme {
+  --color-stage-50: #fafafa;
+  --color-stage-100: #f5f5f5;
+  --color-stage-200: #e5e5e5;
+  --color-stage-300: #d4d4d4;
+  --color-stage-400: #a3a3a3;
+  --color-stage-500: #737373;
+  --color-stage-600: #525252;
+  --color-stage-700: #404040;
+  --color-stage-800: #262626;
+  --color-stage-900: #171717;
+  --color-stage-950: #0a0a0a;
+
+  --color-indigo-300: #a5b4fc;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-950: #1e1b4b;
+}
+
+/* Editor fonts — Oxide brand. Loaded lazily from oxide.computer, so they
+ * only count against bandwidth when the editor (.fable-editor) is mounted.
+ * `font-display: swap` keeps slides from blocking on these. */
+@font-face {
+  font-family: 'GT America Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: url('https://oxide.computer/fonts/GT-America-Mono-Regular-OCC.woff2') format('woff2'),
+    url('https://oxide.computer/fonts/GT-America-Mono-Regular-OCC.woff') format('woff');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuisseIntl';
+  src: url('https://oxide.computer/fonts/SuisseIntl-Regular-WebS.woff2') format('woff2'),
+    url('https://oxide.computer/fonts/SuisseIntl-Regular-WebS.woff') format('woff');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SuisseIntl';
+  src: url('https://oxide.computer/fonts/SuisseIntl-Medium-WebS.woff2') format('woff2'),
+    url('https://oxide.computer/fonts/SuisseIntl-Medium-WebS.woff') format('woff');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+/* Slide fonts — bundled with the package so consumers don't need to host
+ * them. The editor frame opts out via .fable-editor below. */
 @font-face {
   font-family: 'Inter';
   src: url('./fonts/Inter-Regular.woff2') format('woff2');
@@ -77,25 +144,22 @@ body {
   font-feature-settings: 'ss02' on, 'ss03' on, 'ss09' on, 'ss06' on, 'ss07' on, 'ss08' on,
     'case' on;
   -webkit-text-stroke: 0;
-  font-size: 32px;
 
-  @apply bg-neutral-800 m-0 h-full;
+  @apply bg-stage-800 m-0 h-full;
 }
 
-@layer base {
-  body {
-    @apply text-neutral-300;
-    font-family: var(--fable-font-sans);
-  }
+body {
+  @apply text-stage-300;
+  font-family: var(--fable-font-sans);
+}
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5 {
-    font-family: var(--fable-font-display);
-    text-wrap: balance;
-  }
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: var(--fable-font-display);
+  text-wrap: balance;
 }
 
 #root,
@@ -116,7 +180,7 @@ body {
 }
 
 .body-md {
-  @apply text-2xl text-neutral-400;
+  @apply text-2xl text-stage-400;
   line-height: 1.33;
 }
 
@@ -125,7 +189,7 @@ body {
 }
 
 .body-sm {
-  @apply text-base text-neutral-400;
+  @apply text-base text-stage-400;
 }
 
 .markdown {
@@ -144,23 +208,23 @@ body {
 
 .error-table td,
 .error-table th {
-  @apply uppercase border border-neutral-400 text-left p-2;
+  @apply uppercase border border-stage-400 text-left p-2;
 }
 
 .error-table th {
-  @apply bg-gray-300 text-neutral-400;
+  @apply bg-stage-300 text-stage-400;
 }
 
 .error-table td {
-  @apply bg-gray-900;
+  @apply bg-stage-900;
 }
 
 .list-item {
-  @apply border-b border-neutral-400 text-3xl text-neutral-400 py-8 pr-20;
+  @apply border-b border-stage-400 text-3xl text-stage-400 py-8 pr-20;
 }
 
 code:not(pre code) {
-  @apply border rounded border-gray-600 bg-neutral-800 px-1 py-0 ml-1 mr-1 text-[0.825em];
+  @apply border rounded border-stage-600 bg-stage-800 px-1 py-0 ml-1 mr-1 text-[0.825em];
 }
 
 em {
@@ -168,7 +232,7 @@ em {
 }
 
 strong {
-  @apply font-semibold text-neutral-200;
+  @apply font-semibold text-stage-200;
 }
 
 .markdown ul,
@@ -184,7 +248,7 @@ ol {
 
 ul li::marker,
 ol li::marker {
-  @apply text-neutral-400;
+  @apply text-stage-400;
 }
 
 ul li,
@@ -221,9 +285,76 @@ ul .list-item:first-of-type {
 }
 
 pre {
-  @apply border border-neutral-600 rounded-lg p-5 mt-10 mb-5 leading-[1];
+  @apply border border-stage-600 rounded-lg p-5 mt-10 mb-5 leading-[1];
 }
 
 pre code {
   @apply text-sm;
+}
+
+/* Slide stage — slides were authored assuming `font-size: 32px` on html
+ * (Tailwind v3 era), but we now keep html at the 16px default so the
+ * design-system editor tokens render at their intended sizes. To preserve
+ * slide proportions we re-scale Tailwind v4's font-size + spacing tokens
+ * inside this scope (2× their defaults), which the rem-based utilities
+ * then resolve through. */
+.fable-stage {
+  --text-xs: 1.5rem;
+  --text-xs--line-height: calc(1 / 0.75);
+  --text-sm: 1.75rem;
+  --text-sm--line-height: calc(1.25 / 0.875);
+  --text-base: 2rem;
+  --text-base--line-height: calc(1.5 / 1);
+  --text-lg: 2.25rem;
+  --text-lg--line-height: calc(1.75 / 1.125);
+  --text-xl: 2.5rem;
+  --text-xl--line-height: calc(1.75 / 1.25);
+  --text-2xl: 3rem;
+  --text-2xl--line-height: calc(2 / 1.5);
+  --text-3xl: 3.75rem;
+  --text-3xl--line-height: calc(2.25 / 1.875);
+  --text-4xl: 4.5rem;
+  --text-4xl--line-height: calc(2.5 / 2.25);
+  --text-5xl: 6rem;
+  --text-5xl--line-height: 1;
+  --text-6xl: 7.5rem;
+  --text-6xl--line-height: 1;
+  --text-7xl: 9rem;
+  --text-7xl--line-height: 1;
+  --text-8xl: 12rem;
+  --text-8xl--line-height: 1;
+  --text-9xl: 16rem;
+  --text-9xl--line-height: 1;
+
+  --spacing: 0.5rem;
+}
+
+/* Editor frame — uses the Oxide design system tokens & fonts. Scoped so
+ * slide templates keep Inter and their `stage` palette. */
+.fable-editor {
+  font-family: 'SuisseIntl', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+  font-feature-settings: 'ss02' on, 'ss03' on, 'ss09' on, 'ss06' on, 'ss07' on, 'ss08' on,
+    'case' on;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  color: var(--content-default);
+  background-color: var(--surface-default);
+}
+
+.fable-editor hr {
+  border-color: var(--stroke-default);
+}
+
+.fable-editor label {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fable-editor .link-with-underline {
+  color: var(--content-default);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 60%, transparent);
+}
+.fable-editor .link-with-underline:hover {
+  color: var(--content-raise);
 }

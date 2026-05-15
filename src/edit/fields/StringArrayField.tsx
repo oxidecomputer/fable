@@ -28,19 +28,17 @@ export default function StringArrayField({ label, value, onChange }: Props) {
   }
   return (
     <div className="mb-3">
-      <div className="text-[11px] uppercase tracking-wide text-neutral-400 mb-1">
-        {label}
-      </div>
+      <div className="text-mono-xs text-quaternary mb-1">{label}</div>
       {items.map((item, i) => (
-        <div key={i} className="mb-2 border border-neutral-700 rounded">
-          <div className="flex items-center justify-between px-2 py-1 text-xs bg-neutral-900 text-neutral-400">
+        <div key={i} className="mb-2 border border-default rounded">
+          <div className="flex items-center justify-between px-2 py-1 text-mono-xs bg-default text-quaternary">
             <span>#{i + 1}</span>
             <div className="flex gap-1">
               <button
                 type="button"
                 onClick={() => move(i, -1)}
                 disabled={i === 0}
-                className="px-1 disabled:opacity-30 hover:text-neutral-100"
+                className="px-1 disabled:opacity-30 hover:text-default"
               >
                 ↑
               </button>
@@ -48,14 +46,14 @@ export default function StringArrayField({ label, value, onChange }: Props) {
                 type="button"
                 onClick={() => move(i, 1)}
                 disabled={i === items.length - 1}
-                className="px-1 disabled:opacity-30 hover:text-neutral-100"
+                className="px-1 disabled:opacity-30 hover:text-default"
               >
                 ↓
               </button>
               <button
                 type="button"
                 onClick={() => remove(i)}
-                className="px-1 hover:text-red-400"
+                className="px-1 hover:text-destructive"
               >
                 ×
               </button>
@@ -72,7 +70,7 @@ export default function StringArrayField({ label, value, onChange }: Props) {
       <button
         type="button"
         onClick={() => onChange([...items, ''])}
-        className="text-xs text-indigo-300 hover:text-indigo-100"
+        className="text-mono-xs text-accent-secondary hover:text-accent"
       >
         + add item
       </button>

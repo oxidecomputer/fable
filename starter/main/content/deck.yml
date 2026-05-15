@@ -1,13 +1,13 @@
 config:
   page_numbers: true
 pages:
-  - cosmos.md
   - cover.md
-  - time-space.md
-  - phoenix.md
+  - cosmos.md
   - illusions.md
-  - image.md
+  - phoenix.md
+  - time-space.md
   - system.md
+  - image.md
   - whiskers-diagram.md
   - whiskers-image.md
   - thanks.md

@@ -2,12 +2,13 @@ import { z } from 'zod'
 
 import { Markdown } from './Util'
 
-export type ObjectFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'
+const objectFit = ['contain', 'cover', 'fill', 'none', 'scale-down'] as const
+export type ObjectFit = (typeof objectFit)[number]
 
 export const Schema = z.object({
   image: z.string(),
   bg_color: z.string().optional(),
-  object_fit: z.string().optional(),
+  object_fit: z.enum(objectFit).optional(),
   title: z.string().optional(),
 })
 
