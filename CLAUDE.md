@@ -5,56 +5,70 @@ repository.
 
 ## Commands
 
-- `npm run dev` (from repo root, or `npm run dev` from `starter/main/`) — runs the starter
-  via Vite on the default port. The starter consumes the package via `file:../../`, so edits
-  to `src/` hot-reload through it.
-- `npm run build` — `vite build` against the starter (used for verifying the deck compiles
-  cleanly and for `export-pdf`).
-- `npm run preview` — serves the built starter.
+- `npm run dev` (from repo root, or from `starter/main/`) — runs `fable dev` against the
+  starter. The starter consumes the package via `file:../../`, so edits to `src/` hot-reload
+  through it.
+- `npm run build` (from `starter/main/`) — runs `fable build`, output to
+  `starter/main/dist/`.
 - `npm run tsc` (root) — type check the package.
-- `npm run export-pdf` (from `starter/main/`) — builds the starter, then spawns
-  `vite preview` internally and Puppeteer captures all slides into `export.pdf`. No
-  long-running dev server required.
 - `npm run fmt` / `npm run fmt:check` — Prettier.
 
-There is no test runner.
+There is no test runner. PDF export was removed pending a cleaner re-implementation.
 
 ## Architecture
 
-Fable is published as `@oxide/fable` and consumed as **a Vite plugin**. The package ships
-TypeScript source (`src/`, `styles/src/`, `scripts/`) — there is no separate build step; the
-consumer's Vite resolves directly into the package.
+Fable is published as `@oxide/fable` and consumed as **a CLI** (`fable dev`, `fable build`).
+The package ships TypeScript source (`src/`, `styles/src/`) plus a Node CLI (`bin/fable.js`)
+and a Vite runtime shell (`runtime/`). There's no separate build step for the package
+itself.
 
 ### Consumer setup
 
-```ts
-// vite.config.ts
-import fable from '@oxide/fable/plugin'
-import { defineConfig } from 'vite'
+A consumer's directory only needs:
 
-export default defineConfig({ plugins: [fable()] })
+```
+my-deck/
+  content/           # required: deck.yml + .md pages
+  templates/         # optional: custom .jsx/.tsx templates
+  public/            # optional: static assets
+  package.json       # depends on @oxide/fable; scripts: fable dev / fable build
 ```
 
-That's the entire build config. The consumer also has a `content.toml`, an `index.html` with
-a `#root` div, and (optionally) a `templates/` directory of custom `.jsx` templates. No
-`tailwind.config`, no `postcss.config`, no separate CSS step.
+No `vite.config`, no `index.html`, no `tailwind.config`. The CLI spawns Vite with
+`runtime/index.html` + `runtime/main.ts` as the entry, and the Fable plugin handles
+content/template discovery from the user's cwd.
+
+### CLI (`bin/fable.js`)
+
+`fable dev` / `fable build` programmatically invoke Vite with `configFile` pointing at
+`runtime/vite.config.ts`. The CLI sets `FABLE_USER_ROOT=process.cwd()` so the plugin knows
+where the consumer's `content/` and `templates/` live, and overrides `publicDir` and
+`build.outDir` to land inside the user's cwd.
 
 ### What the plugin does (`src/plugin.ts`)
 
-Returns `[react(), ViteToml(), fablePlugin]`. The `fablePlugin`:
+Returns `[react(), tailwindcss(), fablePlugin]`. The `fablePlugin`:
 
-- Configures `css.postcss` with Tailwind + autoprefixer, scanning both the package's own
-  `src/**/*.{ts,tsx}` and the consumer's `templates/**/*.{jsx,tsx}` for utility classes.
-- Defines a virtual entry module `virtual:fable/entry` whose generated source statically
-  imports the consumer's TOML, uses
-  `import.meta.glob('/templates/*.{jsx,tsx}', { eager: true })` to gather custom templates,
-  and mounts `<App content={...} customTemplates={...} />` into `#root`. The virtual is
-  plain JS (no JSX) and uses `React.createElement` so it doesn't need a `.tsx`-suffixed
-  virtual id.
-- Injects `<script type="module" src="/@id/virtual:fable/entry">` into `index.html` via
-  `transformIndexHtml`.
-- Options: `{ content?: string, templatesDir?: string }` (defaults `'content.toml'`,
-  `'templates'`).
+- Accepts a `userRoot` option (Vite's `root` lives inside the package in CLI mode but the
+  deck data lives in the user's cwd). Falls back to Vite's `root` for the legacy mode.
+- Defines a virtual module `virtual:fable/entry` whose generated source statically imports
+  the consumer's `content/` via `loadDeck`, statically imports every `*.{jsx,tsx}` it finds
+  under `<userRoot>/templates/`, and mounts `<App content={...} customTemplates={...} />`
+  into `#root`. `runtime/main.ts` is the actual Vite entry and just does
+  `import 'virtual:fable/entry'` — that's what makes the build pick it up.
+- `transform()`s `styles/src/index.css` to append a Tailwind v4 `@source` directive pointing
+  at the user's templates dir, so utility classes used in custom templates make it into the
+  emitted CSS (Tailwind's auto source detection doesn't follow files outside Vite's root).
+- Resolves bare specifiers from user templates: `@oxide/fable`, `@oxide/fable/styles`, and
+  `@oxide/fable/plugin` map to absolute paths inside the package; other bare specifiers
+  (e.g. `zod`) fall back to `createRequire(packageRoot).resolve(id)` so user templates can
+  reuse the package's own `node_modules`.
+- Adds `userRoot` to `server.fs.allow` and registers `content/` + `templates/` with
+  `server.watcher`, so files outside Vite's root get served and watched.
+- Exposes `/_fable/content` dev middleware (GET/PUT) for the in-page editor to read and
+  persist deck state.
+- Options: `{ contentDir?: string, templatesDir?: string, userRoot?: string }` (defaults
+  `'content'`, `'templates'`, Vite's `root`).
 
 ### Runtime (`src/App.tsx`, `src/Page.tsx`)
 
@@ -75,25 +89,21 @@ Built-in templates live in `src/templates/*.tsx`. Each module exports `Schema` (
 `builtInTemplates` map in `src/App.tsx`.
 
 Consumer custom templates live in `<consumer>/templates/*.{jsx,tsx}` and are auto-discovered
-by the plugin's `import.meta.glob`. Custom templates can import shared utilities from the
-public package surface: `import { Markdown, FitText } from '@oxide/fable'`. The old `~/Util`
-alias is gone.
+by the plugin via `fs.readdir`. Custom templates can import shared utilities from the public
+package surface: `import { Markdown, FitText } from '@oxide/fable'`.
 
 ### Rendering model
 
 Slides render at a fixed `1920×1080` (16:9) and are scaled with CSS `transform` to fit the
 viewport. PDF mode (`?pdf=true`) stacks every page at `scale=1` and adds the `--pdf` class
-to `body`; Puppeteer captures the result at 1920×1080 per page in `scripts/exportPdf.js`.
-Size things against the fixed 1920×1080 stage — viewport-relative units will not behave as
-you expect.
+to `body`. (The PDF export script was removed and will be re-added.) Size things against the
+fixed 1920×1080 stage — viewport-relative units will not behave as you expect.
 
 ### Styles
 
 Source CSS lives at `styles/src/index.css` (plus `lib/highlight.css` and `lib/pdf.css`). The
-plugin's virtual entry imports it via `import '@oxide/fable/styles'`, so Vite's PostCSS
-pipeline (configured by the plugin) processes it through Tailwind. Design-system classes
-(`page-padding`, `large-title`, `markdown`, `error-table`, etc.) live in the package — they
-belong with the built-in templates that use them.
+virtual entry imports it via an absolute path so it works whether Vite's root is the
+consumer dir (legacy) or `runtime/` (CLI).
 
 Fonts (Inter + Inter Display) ship inside the package at `styles/src/fonts/`, declared via
 `@font-face` in the package CSS with relative `url('./fonts/...')` paths that Vite rewrites
@@ -106,19 +116,15 @@ route in dev.
 ### `@oxide/create-fable`
 
 `starter/index.js` is the scaffolder (`npx @oxide/create-fable`). It does a recursive copy
-of `starter/main/` into the new project directory, with two file-specific transforms:
-rewriting `package.json`'s `"@oxide/fable": "file:../../"` to the published version, and
-replacing the title in `index.html`. When the starter changes (e.g. new files like
-`vite.config.ts`), they're picked up automatically — no scaffolder change needed unless the
-file needs a transform.
+of `starter/main/` into the new project directory, with one file-specific transform:
+rewriting `package.json`'s `"@oxide/fable": "file:../../"` to the published version.
 
-### Package exports
+### Package exports & bin
 
 - `.` → `./src/index.ts` — browser runtime (`App`, `Markdown`, `FitText`, types)
 - `./plugin` → `./src/plugin.ts` — Vite plugin
-- `./pdf` → `./scripts/exportPdf.js` — Node-only PDF export (kept separate so importing it
-  doesn't pull in React)
 - `./styles` → `./styles/src/index.css` — source CSS, processed by consumer Vite
+- bin: `fable` → `./bin/fable.js`
 
 ### Code style
 

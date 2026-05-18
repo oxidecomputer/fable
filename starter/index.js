@@ -68,11 +68,6 @@ function createDirectoryContents(projectName, templatePath, newProjectPath) {
           `"@oxide/fable": "^0.2.0"`,
         )
         fs.writeFileSync(writePath, contents, 'utf8')
-      } else if (file == 'index.html') {
-        let contents = fs.readFileSync(origFilePath, 'utf8')
-        // Replace title for user provided one
-        contents = contents.replace('Fable – Presentation Generator', toTitle(projectName))
-        fs.writeFileSync(writePath, contents, 'utf8')
       } else {
         fs.copyFileSync(origFilePath, writePath)
       }
@@ -86,13 +81,5 @@ function createDirectoryContents(projectName, templatePath, newProjectPath) {
         `${newProjectPath}/${file}`,
       )
     }
-  })
-}
-
-function toTitle(str) {
-  let string = str.replace('-', ' ')
-
-  return string.replace(/\w\S*/g, function (txt) {
-    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
   })
 }

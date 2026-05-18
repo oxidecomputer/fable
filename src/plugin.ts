@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Connect, Plugin, PluginOption, ViteDevServer } from 'vite'
@@ -11,6 +12,12 @@ export type FableOptions = {
   templatesDir?: string
   /** Path (relative to project root) of the content directory. Default: 'content'. */
   contentDir?: string
+  /**
+   * Directory containing the consumer's `content/` and `templates/`. Defaults to
+   * Vite's `root`. Set this when Vite's root is inside the package (CLI mode)
+   * but the deck data lives elsewhere.
+   */
+  userRoot?: string
 }
 
 type PageData = Record<string, any> & { template: string }
@@ -37,6 +44,10 @@ const ENTRY_ID = 'virtual:fable/entry'
 const RESOLVED_ENTRY = '\0' + ENTRY_ID
 
 const packageRoot = path.resolve(fileURLToPath(import.meta.url), '../..')
+const PACKAGE_APP_ENTRY = path.join(packageRoot, 'src', 'index.ts')
+const PACKAGE_PLUGIN_ENTRY = path.join(packageRoot, 'src', 'plugin.ts')
+const PACKAGE_STYLES = path.join(packageRoot, 'styles', 'src', 'index.css')
+const requireFromPackage = createRequire(path.join(packageRoot, 'package.json'))
 
 function normalize(p: string) {
   return p.replace(/^\.?\/+/, '').replace(/\/+$/, '')
@@ -257,7 +268,7 @@ export default function fable(options: FableOptions = {}): PluginOption {
   const templatesDir = normalize(options.templatesDir ?? 'templates')
   const contentDir = normalize(options.contentDir ?? 'content')
 
-  let projectRoot = process.cwd()
+  let userRoot = options.userRoot ?? process.cwd()
   const ignore = { ignoreUntil: 0 }
 
   const fablePlugin: Plugin = {
@@ -265,7 +276,7 @@ export default function fable(options: FableOptions = {}): PluginOption {
     enforce: 'pre',
 
     configResolved(config) {
-      projectRoot = config.root
+      if (!options.userRoot) userRoot = config.root
     },
 
     config() {
@@ -274,17 +285,33 @@ export default function fable(options: FableOptions = {}): PluginOption {
           include: ['mousetrap', 'highlight.js', 'react', 'react-dom/client'],
         },
         server: {
-          fs: { allow: [packageRoot] },
+          fs: { allow: [packageRoot, userRoot] },
         },
       }
     },
 
     configureServer(server) {
-      attachContentMiddleware(server, projectRoot, ignore)
+      attachContentMiddleware(server, userRoot, ignore)
+
+      // When Vite's root is inside the package (CLI mode), the watcher
+      // doesn't follow content/ and templates/ on its own. Add them.
+      const contentPath = path.join(userRoot, contentDir)
+      const templatesPath = path.join(userRoot, templatesDir)
+      server.watcher.add([contentPath, templatesPath])
+
+      const onTemplateChange = (file: string) => {
+        if (!file.startsWith(templatesPath)) return
+        if (!/\.(jsx|tsx)$/.test(file)) return
+        const entry = server.moduleGraph.getModuleById(RESOLVED_ENTRY)
+        if (entry) server.moduleGraph.invalidateModule(entry)
+        server.ws.send({ type: 'full-reload' })
+      }
+      server.watcher.on('add', onTemplateChange)
+      server.watcher.on('unlink', onTemplateChange)
     },
 
     hotUpdate({ file, server }) {
-      const contentPath = path.join(projectRoot, contentDir)
+      const contentPath = path.join(userRoot, contentDir)
       if (!file.startsWith(contentPath)) return
 
       // Returning [] from hotUpdate skips vite's default module-graph
@@ -300,31 +327,85 @@ export default function fable(options: FableOptions = {}): PluginOption {
       return []
     },
 
-    resolveId(id) {
+    async resolveId(id, importer) {
       if (id === ENTRY_ID) return RESOLVED_ENTRY
+
+      // Map `@oxide/fable` and subpaths to package source so consumer-side
+      // templates can `import { Markdown } from '@oxide/fable'` even when
+      // there's no @oxide/fable in their node_modules (CLI mode).
+      if (id === '@oxide/fable') return PACKAGE_APP_ENTRY
+      if (id === '@oxide/fable/styles') return PACKAGE_STYLES
+      if (id === '@oxide/fable/plugin') return PACKAGE_PLUGIN_ENTRY
+
+      // Bare specifiers from user files (templates) fall back to the
+      // package's own node_modules in CLI mode where userRoot has none.
+      if (!importer || importer === RESOLVED_ENTRY) return
+      if (id.startsWith('.') || id.startsWith('\0') || path.isAbsolute(id)) return
+      const resolved = await this.resolve(id, importer, { skipSelf: true })
+      if (resolved) return resolved
+      try {
+        return requireFromPackage.resolve(id)
+      } catch {
+        return undefined
+      }
+    },
+
+    transform(code, id) {
+      // Append a Tailwind @source pointing at the user's templates to the
+      // package's own index.css. Needed when Vite's root is inside the
+      // package (CLI mode), since templates live outside Vite's root and so
+      // Tailwind's auto-discovery misses them. Doing it here (rather than
+      // via a virtual CSS module) ensures @tailwindcss/vite actually
+      // processes the directive.
+      if (id === PACKAGE_STYLES || id.startsWith(PACKAGE_STYLES + '?')) {
+        const templatesPath = path.join(userRoot, templatesDir)
+        return `${code}\n@source ${JSON.stringify(`${templatesPath}/**/*.{jsx,tsx}`)};\n`
+      }
     },
 
     async load(id) {
       if (id !== RESOLVED_ENTRY) return
 
-      const { content, filenames, files } = await loadDeck(projectRoot)
+      const { content, filenames, files } = await loadDeck(userRoot)
       for (const f of files) this.addWatchFile(f)
+
+      const templatesPath = path.join(userRoot, templatesDir)
+      let templateFiles: string[] = []
+      try {
+        templateFiles = (await fs.readdir(templatesPath)).filter((f) =>
+          /\.(jsx|tsx)$/.test(f),
+        )
+      } catch {
+        /* templates dir is optional */
+      }
+
+      const templateImports = templateFiles
+        .map((file, i) => {
+          const abs = path.join(templatesPath, file)
+          return `import * as t_${i} from ${JSON.stringify(abs)}`
+        })
+        .join('\n')
+
+      const templateEntries = templateFiles
+        .map((file, i) => {
+          const name = file.replace(/\.(jsx|tsx)$/, '')
+          return `  ${JSON.stringify(name)}: t_${i},`
+        })
+        .join('\n')
 
       const initial = JSON.stringify({ content, filenames })
 
       return `
 import { StrictMode, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { App } from '@oxide/fable'
-import '@oxide/fable/styles'
+import { App } from ${JSON.stringify(PACKAGE_APP_ENTRY)}
+import ${JSON.stringify(PACKAGE_STYLES)}
+${templateImports}
 
 const { content, filenames } = ${initial}
 
-const userTemplates = import.meta.glob('/${templatesDir}/*.{jsx,tsx}', { eager: true })
-const customTemplates = {}
-for (const [filePath, mod] of Object.entries(userTemplates)) {
-  const name = filePath.split('/').pop().replace(/\\.(jsx|tsx)$/, '')
-  customTemplates[name] = mod
+const customTemplates = {
+${templateEntries}
 }
 
 const el = document.getElementById('root')
@@ -338,16 +419,6 @@ if (el) {
   )
 }
 `
-    },
-
-    transformIndexHtml() {
-      return [
-        {
-          tag: 'script',
-          attrs: { type: 'module', src: `/@id/${ENTRY_ID}` },
-          injectTo: 'body',
-        },
-      ]
     },
   }
 

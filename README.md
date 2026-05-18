@@ -6,65 +6,65 @@
 > presentation creation. We greatly appreciate feedback, suggestions, and best of all
 > contributions.
 
-Fable is a deck generator that looks to offer an authoring experience as effortless as
+Fable is a deck generator that aims to offer an authoring experience as effortless as
 markdown presentation libraries while providing the flexibility to create more varied
-layouts. It utilizes TOML templates and content schema validation (via
-[zod](https://zod.dev/)) to ensure content accuracy and format adherence.
+layouts. Pages are Markdown files with YAML frontmatter, and templates use
+[zod](https://zod.dev/) schemas to validate content and surface typos as in-page errors.
 
 ![CleanShot 2023-06-19 at 19 07 36](https://github.com/oxidecomputer/fable/assets/4020798/f22a3bc9-9954-4846-849c-daa1878b3278)
 
 ## Key Features
 
-- Schema-based validation for templates
-- Customizable page templates
-- Support for a wide variety of content formats (Markdown, code snippets, images) and can be
-  extended to support anything else
-- Seamless export to PDF using [`Puppeteer`](https://pptr.dev/)
+- Single-command CLI: `fable dev` / `fable build` — no `vite.config`, no `index.html`, no
+  `tailwind.config`
+- Schema-validated page templates
+- Custom React templates auto-discovered from a `templates/` directory
 - Built-in Tailwind CSS support
 
 ## How It Works
 
-Specify a page template along with its own content schema (using [`zod`](https://zod.dev/))
-to validate the content and fields in the TOML file.
+A page is a Markdown file with YAML frontmatter that picks a template:
 
-```jsx
-export const Schema = z.object({
-  title: z.string().optional,
-  text: z.string(),
-})
-```
+```md
+---
+template: Basic
+title: A Journey Through the Cosmos
+---
 
-```toml
-[[pages]]
-template = "Basic"
-title = "A Journey Through the Cosmos"
-text = """
 - In the _vastness of space_, time and distance are but mere illusions
-    - Worlds exist beyond our wildest imaginations
-        - On these worlds, _beings of all shapes and sizes_ dwell
 - With societies and cultures _as diverse as the stars_ that light up the skies above
 - They are **united** in their quest for knowledge and understanding
-- The universe itself is our teacher, and its secrets our endless source of inspiration
-"""
 ```
 
-The `template` attribute in your TOML file should correspond to the template component name.
-Fable provides
-[several built-in templates](https://github.com/oxidecomputer/fable/tree/main/src/templates),
-but custom templates can also be created. Any design you can produce with a React layout can
-be incorporated into your presentation.
+Pages are listed in order in `content/deck.yml`:
 
-This means you're not relying on the library to support any type of content, it can be
-easily extended to support things like Latex, AsciiMath, AsciiDoc by just installing any
-prerequisites and handling it directly in a new layout.
+```yaml
+config:
+  page_numbers: true
+pages:
+  - cover.md
+  - cosmos.md
+  - thanks.md
+```
+
+The `template` key resolves against
+[Fable's built-in templates](https://github.com/oxidecomputer/fable/tree/main/src/templates)
+or your own custom templates (see below). Any layout you can build with React can be
+incorporated into your presentation, so the deck can host things like LaTeX, AsciiMath, or
+AsciiDoc by installing a library and rendering it inside a template.
 
 ## Getting Started
 
-Create a new presentation with `npx @oxide/create-fable@latest`.
+```sh
+npx @oxide/create-fable@latest
+cd my-deck
+npm install
+npm run dev
+```
 
-## Export to PDF
-
-To generate a PDF version of your presentation, run `npm run export-pdf`.
+A project only needs a `content/` directory (and optionally `templates/` and `public/`).
+There's no `vite.config`, `index.html`, or `tailwind.config` — the `fable` CLI handles the
+build pipeline.
 
 ## Navigation
 
@@ -90,8 +90,8 @@ export const Template = ({ data }) => (
 )
 ```
 
-Unknown TOML keys are caught as schema errors (the schema is parsed in strict mode), so
-typos surface as an in-page error table instead of silently rendering blank content.
+Unknown frontmatter keys are caught as schema errors (the schema is parsed in strict mode),
+so typos surface as an in-page error table instead of silently rendering blank content.
 
 ### Template Utilities
 
@@ -102,15 +102,16 @@ Importable from `@oxide/fable`:
 
 ## Styling
 
-Fable supports [Tailwind CSS](https://tailwindcss.com/) out of the box — the Vite plugin
-wires up Tailwind via PostCSS and scans both the package's built-in templates and your
-project's `templates/` directory. No `tailwind.config` or `postcss.config` needed.
+Fable supports [Tailwind CSS](https://tailwindcss.com/) v4 out of the box — the CLI's Vite
+runtime wires up `@tailwindcss/vite` and scans both the package's built-in templates and
+your project's `templates/` directory for utility classes. No `tailwind.config` or
+`postcss.config` needed.
 
 ### Fonts
 
 Inter and Inter Display ship with the package, so a fresh project renders correctly with no
-setup. To swap fonts, drop a CSS file (e.g. `public/styles.css`) into your project and
-override the CSS variables:
+setup. To swap fonts, drop a CSS file into `public/` (e.g. `public/styles.css`) and override
+the CSS variables:
 
 ```css
 @font-face {
@@ -124,5 +125,11 @@ override the CSS variables:
 }
 ```
 
-Link it from `index.html` (`<link rel="stylesheet" href="/styles.css">`) and the overrides
-take effect.
+Import it from any custom template (`import '/styles.css'`) and the overrides take effect.
+
+## CLI
+
+```
+fable dev     Start the dev server in the current directory
+fable build   Build a production deck into ./dist
+```
