@@ -12,6 +12,7 @@ export type Content = {
 }
 
 export const $deck = atom<Content>('deck', { pages: [] })
+export const $mode = atom<'edit' | 'present'>('mode', 'edit')
 export const $filenames = atom<string[]>('filenames', [])
 export const $currentIndex = atom<number>('currentIndex', 0)
 export const $saveStatus = atom<'idle' | 'saving' | 'saved' | 'error'>('saveStatus', 'idle')

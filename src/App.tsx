@@ -7,7 +7,7 @@ import type { TemplateMap, TemplateModule } from './Page'
 import EditShell from './edit/EditShell'
 import { redo, undo } from './edit/history'
 import { startPersist } from './edit/persist'
-import { $currentIndex, $deck, $filenames, initializeStore } from './edit/store'
+import { $currentIndex, $deck, $filenames, $mode, initializeStore } from './edit/store'
 import { useKey } from './hooks/use-key'
 import * as Basic from './templates/Basic'
 import * as Cover from './templates/Cover'
@@ -43,6 +43,8 @@ type Props = {
 const EDIT_SIDEBAR_WIDTH = 300 + 340
 
 export default function App({ content, filenames = [], customTemplates = {} }: Props) {
+  const mode = useValue($mode)
+
   const templates = useMemo(
     () => ({ ...builtInTemplates, ...customTemplates }),
     [customTemplates],
@@ -53,14 +55,9 @@ export default function App({ content, filenames = [], customTemplates = {} }: P
     return params.get('pdf') !== null
   }, [])
 
-  const isEdit = useMemo(() => {
-    const params = new URL(document.location.toString()).searchParams
-    return params.get('edit') !== null
-  }, [])
+  if (mode === 'edit') initializeStore(content, filenames, templates)
 
-  if (isEdit) initializeStore(content, filenames, templates)
-
-  return isEdit ? (
+  return mode === 'edit' ? (
     <EditView templates={templates} />
   ) : (
     <PresentView content={content} templates={templates} isPdf={isPdf} />
