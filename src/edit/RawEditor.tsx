@@ -1,51 +1,41 @@
 import { useValue } from '@tldraw/state-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 
-import { parsePage, serializePage } from '../content/markdown'
+import { $collabBridge } from './collab/room'
 import CodeEditor from './fields/CodeEditor'
-import { $currentIndex, $currentPage, setPage } from './store'
+import { $currentPageId, $pageErrors } from './store'
 
+/**
+ * The page's full serialized source, bound directly to its Y.Text (remote
+ * cursors included). Parse errors come from the bridge observer.
+ */
 export default function RawEditor() {
-  const page = useValue($currentPage)
-  const index = useValue($currentIndex)
+  const pageId = useValue($currentPageId)
 
-  const serialized = useMemo(() => (page ? serializePage(page) : ''), [page])
-  const lastSerialized = useRef(serialized)
-  const [text, setText] = useState(serialized)
-  const [parseError, setParseError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (serialized !== lastSerialized.current) {
-      lastSerialized.current = serialized
-      setText(serialized)
-      setParseError(null)
-    }
-  }, [serialized])
-
-  if (!page) {
+  if (!pageId) {
     return <div className="text-mono-xs text-quaternary italic">No page selected</div>
   }
+  return <PageSource key={pageId} pageId={pageId} />
+}
 
-  const handleChange = (next: string) => {
-    setText(next)
-    // Ignore echoes from external value syncs (e.g. undo applied a new page).
-    if (next === lastSerialized.current) {
-      setParseError(null)
-      return
-    }
-    try {
-      const parsed = parsePage(next)
-      lastSerialized.current = serializePage(parsed)
-      setPage(index, parsed)
-      setParseError(null)
-    } catch (err) {
-      setParseError(err instanceof Error ? err.message : String(err))
-    }
+function PageSource({ pageId }: { pageId: string }) {
+  const bridge = useValue($collabBridge)
+  const parseError = useValue('pageError', () => $pageErrors.get()[pageId] ?? null, [
+    pageId,
+  ])
+  const collab = useMemo(() => {
+    const ytext = bridge?.getPageText(pageId)
+    if (!bridge || !ytext) return undefined
+    return { ytext, awareness: bridge.awareness, undoManager: bridge.undoManager }
+  }, [bridge, pageId])
+
+  if (!collab) {
+    return <div className="text-mono-xs text-quaternary italic">No page selected</div>
   }
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
-      <CodeEditor value={text} onChange={handleChange} hasError={!!parseError} />
+      <CodeEditor collab={collab} hasError={!!parseError} />
       {parseError && (
         <div className="shrink-0 mt-2 text-mono-xs text-destructive">{parseError}</div>
       )}

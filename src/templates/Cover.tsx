@@ -12,9 +12,9 @@ export const Template = ({ data }: { data: Schema }) => {
   const { title } = data
 
   return (
-    <div className="page-padding flex flex-col justify-center !bg-stage-800">
-      <h1 className="text-[110px] leading-[1.1] font-[300] text-stage-400 pr-[120px]">
-        <Markdown content={title} />
+    <div className="page-padding flex flex-col justify-center bg-raise">
+      <h1 className="text-[110px] leading-[1.1] font-[300] text-raise pr-[120px] tracking-[-0.02em]">
+        <Markdown content={title} field="title" />
       </h1>
     </div>
   )

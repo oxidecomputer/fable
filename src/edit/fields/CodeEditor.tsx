@@ -1,17 +1,41 @@
+import { javascript } from '@codemirror/lang-javascript'
 import { markdown } from '@codemirror/lang-markdown'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { EditorView } from '@codemirror/view'
+import { EditorView, keymap } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
 import CodeMirror from '@uiw/react-codemirror'
-import { type FocusEvent, useEffect, useRef } from 'react'
+import { type FocusEvent, useMemo, useState } from 'react'
+import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next'
+import type * as Y from 'yjs'
 
-import { endBypass, startBypass } from '../history'
+import { stopCapturing } from '../undo'
+
+export type CollabBinding = {
+  ytext: Y.Text
+  awareness: unknown
+  undoManager: Y.UndoManager
+}
 
 type Props = {
   label?: string
-  value: string
-  onChange: (next: string) => void
+  value?: string
+  onChange?: (next: string) => void
   hasError?: boolean
+  /** Syntax highlighting mode. Default: 'markdown'. */
+  language?: 'markdown' | 'tsx'
+  readOnly?: boolean
+  /**
+   * 'fill' stretches to the available space (raw source / template editors);
+   * 'auto' grows with content up to a cap (schema-form fields).
+   */
+  sizing?: 'fill' | 'auto'
+  /**
+   * When set, the editor is bound directly to a Y.Text via yCollab
+   * (uncontrolled; remote cursors included) and CodeMirror's own history is
+   * disabled in favor of the shared UndoManager. Remount (key) when the
+   * bound Y.Text changes.
+   */
+  collab?: CollabBinding
 }
 
 const oxideDark = {
@@ -24,6 +48,17 @@ const oxideDark = {
 
 const highlightStyle = HighlightStyle.define([
   { tag: tags.comment, color: '#A1A4A5' },
+
+  // Code (tsx)
+  { tag: tags.keyword, color: '#F7869B' },
+  { tag: tags.string, color: '#A7E0C8' },
+  { tag: [tags.number, tags.bool, tags.null], color: '#EDD5A6' },
+  { tag: [tags.typeName, tags.className], color: '#EDD5A6' },
+  { tag: tags.propertyName, color: '#9DAFFA' },
+  { tag: tags.function(tags.variableName), color: '#C6A5EA' },
+  { tag: tags.tagName, color: '#F7869B' },
+  { tag: tags.attributeName, color: '#88DCB7' },
+  { tag: tags.operator, color: '#E7E7E8' },
 
   { tag: tags.heading, color: '#F7869B', fontWeight: 'bold' },
   { tag: tags.heading1, color: '#F7869B', fontWeight: 'bold' },
@@ -81,57 +116,74 @@ const theme = EditorView.theme({
   },
 })
 
-const extensions = [
-  markdown(),
+const sharedExtensions = [
   EditorView.lineWrapping,
   theme,
   syntaxHighlighting(highlightStyle),
 ]
 
-export default function CodeEditor({ label, value, onChange, hasError }: Props) {
-  // While CodeMirror has focus, bypass global history so its own per-keystroke
-  // undo owns the session. On blur, the cumulative change lands as one entry.
-  const focusedRef = useRef(false)
+const languageExtension = {
+  markdown: () => markdown(),
+  tsx: () => javascript({ jsx: true, typescript: true }),
+}
 
-  useEffect(() => {
-    return () => {
-      if (focusedRef.current) {
-        focusedRef.current = false
-        endBypass('cm-edit')
-      }
-    }
-  }, [])
+export default function CodeEditor({
+  label,
+  value,
+  onChange,
+  hasError,
+  language = 'markdown',
+  readOnly = false,
+  sizing = 'fill',
+  collab,
+}: Props) {
+  const isCollab = !!collab
 
-  const handleFocus = () => {
-    if (focusedRef.current) return
-    focusedRef.current = true
-    startBypass()
-  }
+  // yCollab keeps the view and Y.Text in sync but does not seed the initial
+  // document — snapshot it once at mount (the parent remounts us per Y.Text).
+  const [initialValue] = useState(() => collab?.ytext.toString())
 
+  const extensions = useMemo(() => {
+    const base = [languageExtension[language](), ...sharedExtensions]
+    if (!collab) return base
+    return [
+      ...base,
+      keymap.of(yUndoManagerKeymap),
+      yCollab(collab.ytext, collab.awareness, { undoManager: collab.undoManager }),
+    ]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, collab?.ytext, collab?.awareness, collab?.undoManager])
+
+  // Close the shared undo capture group when leaving the editor so the next
+  // edit starts a fresh undo step.
   const handleBlur = (e: FocusEvent<HTMLDivElement>) => {
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
-    if (!focusedRef.current) return
-    focusedRef.current = false
-    endBypass('cm-edit')
+    stopCapturing()
   }
 
+  const fill = sizing === 'fill'
   return (
-    <div className="flex flex-1 flex-col min-h-0">
+    <div className={fill ? 'flex flex-1 flex-col min-h-0' : 'mb-3'}>
       {label && <div className="text-mono-xs text-quaternary mb-1">{label}</div>}
       <div
-        onFocus={handleFocus}
         onBlur={handleBlur}
-        className={`flex-1 min-h-0 overflow-hidden rounded border focus-within:border-accent-secondary ${
+        className={`${
+          fill ? 'flex-1 min-h-0' : ''
+        } overflow-hidden rounded border focus-within:border-accent-secondary ${
           hasError ? 'border-destructive' : 'border-default'
         }`}
       >
         <CodeMirror
-          value={value}
-          onChange={onChange}
+          value={isCollab ? initialValue : value}
+          onChange={isCollab ? undefined : onChange}
           extensions={extensions}
           theme="none"
-          height="100%"
-          className="h-full"
+          height={fill ? '100%' : undefined}
+          minHeight={fill ? undefined : '60px'}
+          maxHeight={fill ? undefined : '40vh'}
+          className={fill ? 'h-full' : ''}
+          editable={!readOnly}
+          readOnly={readOnly}
           basicSetup={{
             lineNumbers: true,
             highlightActiveLine: true,
@@ -139,7 +191,7 @@ export default function CodeEditor({ label, value, onChange, hasError }: Props) 
             autocompletion: false,
             foldGutter: false,
             indentOnInput: true,
-            history: true,
+            history: !isCollab,
           }}
         />
       </div>

@@ -97,6 +97,7 @@ export default function SchemaForm({ schema, value, onChange, errorKeys }: Props
             value={value[key] ?? ''}
             onChange={(next) => onChange(key, next)}
             hasError={hasError}
+            sizing="auto"
           />
         )
       }
@@ -119,7 +120,7 @@ export default function SchemaForm({ schema, value, onChange, errorKeys }: Props
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0">
+    <div className="flex flex-col">
       {regular.map(renderField)}
       {longForm.map(renderField)}
     </div>

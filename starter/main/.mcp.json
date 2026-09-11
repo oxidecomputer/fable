@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "fable": {
+      "command": "npx",
+      "args": ["fable", "mcp"]
+    }
+  }
+}

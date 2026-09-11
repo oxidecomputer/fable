@@ -2,8 +2,8 @@
 import fs from 'fs'
 import inquirer from 'inquirer'
 import path from 'path'
-import { parseArgs } from 'util'
 import * as url from 'url'
+import { parseArgs } from 'util'
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 const CURR_DIR = process.cwd()
@@ -115,6 +115,11 @@ function createDirectoryContents(templatePath, newProjectPath) {
           `"@oxide/fable": "file:../../"`,
           `"@oxide/fable": "^0.2.0"`,
         )
+        fs.writeFileSync(writePath, contents, 'utf8')
+      } else if (file === 'deck.yml') {
+        // Each new project gets its own Liveblocks room.
+        let contents = fs.readFileSync(origFilePath, 'utf8')
+        contents = contents.replace(/^room: .*$/m, `room: ${newProjectPath.split('/')[0]}`)
         fs.writeFileSync(writePath, contents, 'utf8')
       } else {
         fs.copyFileSync(origFilePath, writePath)

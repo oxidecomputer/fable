@@ -1,0 +1,28 @@
+{
+  "name": "@oxide/fable-server",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Hosted API for Fable multiplayer decks: Liveblocks auth, room CRUD, seed/export",
+  "exports": {
+    ".": "./src/app.ts"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "dev": "tsx watch src/main.ts",
+    "tsc": "tsc"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.0",
+    "@liveblocks/node": "^3.0.0",
+    "@oxide/fable": "file:..",
+    "hono": "^4.7.0",
+    "tsx": "^4.19.0",
+    "yjs": "^13.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.14.0",
+    "typescript": "^5.9.3"
+  },
+  "license": "MPL 2.0"
+}

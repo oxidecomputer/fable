@@ -5,8 +5,15 @@
   "exports": {
     ".": "./src/index.ts",
     "./plugin": "./src/plugin.ts",
-    "./styles": "./styles/src/index.css"
+    "./styles": "./styles/src/index.css",
+    "./collab": "./src/collab/index.ts",
+    "./node": "./src/node/collab.ts",
+    "./node/deck-files": "./src/node/deck-files.ts",
+    "./themes/oxide": "./src/themes/oxide/index.ts"
   },
+  "workspaces": [
+    "server"
+  ],
   "bin": {
     "fable": "bin/fable.js"
   },
@@ -15,26 +22,40 @@
     "build": "npm run build --prefix starter/main",
     "fmt": "prettier --write --ignore-path ./.gitignore  .",
     "fmt:check": "prettier --check --ignore-path ./.gitignore . ",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.5",
     "@codemirror/lang-markdown": "^6.5.0",
     "@codemirror/language": "^6.11.0",
     "@codemirror/view": "^6.36.4",
     "@lezer/highlight": "^1.2.1",
-    "@oxide/design-system": "^6.2.1",
+    "@liveblocks/client": "^3.24.1",
+    "@liveblocks/node": "^3.24.1",
+    "@liveblocks/react": "^3.24.1",
+    "@liveblocks/react-ui": "^3.24.1",
+    "@liveblocks/yjs": "^3.24.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@oxide/design-system": "^6.6.1",
     "@tailwindcss/vite": "^4.3.0",
     "@tldraw/state": "^2.0.2",
     "@tldraw/state-react": "^2.0.2",
     "@uiw/react-codemirror": "^4.23.10",
     "@vitejs/plugin-react": "^4.7.0",
+    "fast-diff": "^1.3.0",
     "highlight.js": "^11.7.0",
     "marked": "^7.0.3",
     "mousetrap": "^1.6.5",
+    "nanoid": "^6.0.1",
+    "playwright-core": "^1.62.1",
     "postcss": "^8.4.21",
+    "sucrase": "^3.35.1",
     "tailwindcss": "^4.2.4",
     "vite": "^6.4.2",
+    "y-codemirror.next": "^0.3.6",
     "yaml": "^2.3.4",
+    "yjs": "^13.6.32",
     "zod": "^3.20.6"
   },
   "peerDependencies": {
@@ -48,8 +69,10 @@
     "@types/node": "^18.14.0",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
+    "jsdom": "^30.0.1",
     "prettier": "^2.8.4",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
   },
   "files": [
     "src/**",

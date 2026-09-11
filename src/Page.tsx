@@ -1,9 +1,15 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Component, type ErrorInfo, type ReactNode, useMemo } from 'react'
 import { z } from 'zod'
+
+import { CanvasEditContext } from './templates/Util'
 
 export type TemplateModule = {
   Template: (props: { data: any; className?: string }) => JSX.Element
   Schema?: z.ZodTypeAny
+  /** Module source, when known — lets the editor fork a template into a doc template. */
+  source?: string
+  /** A canonical example page source for this template (docs for agents/humans). */
+  example?: string
 }
 
 export type TemplateMap = Record<string, TemplateModule>
@@ -13,6 +19,8 @@ type Props = {
   scale: number
   templates: TemplateMap
   pageNumber: ReactNode
+  /** When set, text fields rendered via <Markdown field=…> edit in place. */
+  onEditField?: (field: string, value: string, index?: number) => void
 }
 
 class TemplateErrorBoundary extends Component<
@@ -52,8 +60,12 @@ class TemplateErrorBoundary extends Component<
   }
 }
 
-export default function Page({ data, scale, templates, pageNumber }: Props) {
+export default function Page({ data, scale, templates, pageNumber, onEditField }: Props) {
   const template = templates[data.template]
+  const canvasEdit = useMemo(
+    () => (onEditField ? { update: onEditField } : null),
+    [onEditField],
+  )
 
   return (
     <main
@@ -63,7 +75,7 @@ export default function Page({ data, scale, templates, pageNumber }: Props) {
         transformOrigin: '50% 50%',
       }}
     >
-      <div className="fable-stage bg-stage-900 relative w-full h-full">
+      <div className="fable-stage bg-default relative w-full h-full">
         {!template ? (
           <div className="page-padding flex flex-col bg-error-secondary h-full">
             <div className="rounded-lg text-error mb-4 text-mono-md !text-xl">
@@ -73,7 +85,9 @@ export default function Page({ data, scale, templates, pageNumber }: Props) {
         ) : (
           <div className="w-full h-full children:w-full children:h-full children:overflow-hidden">
             <TemplateErrorBoundary resetKey={data}>
-              <template.Template data={data} />
+              <CanvasEditContext.Provider value={canvasEdit}>
+                <template.Template data={data} />
+              </CanvasEditContext.Provider>
             </TemplateErrorBoundary>
           </div>
         )}

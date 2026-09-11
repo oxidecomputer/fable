@@ -2,18 +2,21 @@ import { useValue } from '@tldraw/state-react'
 import { type KeyboardEvent, memo, useEffect, useRef } from 'react'
 
 import Page, { type TemplateMap } from '../Page'
+import { PagePresenceDots } from './collab/Avatars'
 import {
   $currentIndex,
   $deck,
   $dragIndex,
   $filenames,
   $overIndex,
+  $pageIds,
   $templates,
   $title,
   type PageData,
   addPage,
   movePage,
   removePage,
+  setCurrentIndex,
   setTitle,
 } from './store'
 
@@ -23,6 +26,7 @@ const THUMB_SCALE = THUMB_WIDTH / 1920
 
 type RowProps = {
   index: number
+  pageId: string
   page: PageData
   filename: string
   isActive: boolean
@@ -31,6 +35,7 @@ type RowProps = {
 
 const PageRow = memo(function PageRow({
   index,
+  pageId,
   page,
   filename,
   isActive,
@@ -65,10 +70,10 @@ const PageRow = memo(function PageRow({
         tabIndex={0}
         draggable
         onClick={(e) => {
-          $currentIndex.set(index)
+          setCurrentIndex(index)
           e.currentTarget.focus()
         }}
-        onFocus={() => $currentIndex.set(index)}
+        onFocus={() => setCurrentIndex(index)}
         onKeyDown={onKeyDown}
         onDragStart={(e) => {
           $dragIndex.set(index)
@@ -105,7 +110,7 @@ const PageRow = memo(function PageRow({
         </span>
         <div
           title={filename.replace(/\.md$/, '')}
-          className={`relative bg-stage-900 rounded overflow-hidden border border-default transition-shadow ${
+          className={`relative bg-default rounded overflow-hidden border border-default transition-shadow ${
             isActive
               ? 'group-focus:ring-accent-secondary group-focus:ring-2'
               : 'ring-transparent group-hover:ring-2 group-hover:ring-default group-focus:ring-secondary'
@@ -115,6 +120,7 @@ const PageRow = memo(function PageRow({
           <div className="pointer-events-none">
             <Page data={page} scale={THUMB_SCALE} templates={templates} pageNumber={null} />
           </div>
+          <PagePresenceDots pageId={pageId} />
         </div>
       </div>
       {isOver && dragIndex! < index && <DropIndicator />}
@@ -156,6 +162,7 @@ function Header() {
 
 export default function PageList() {
   const pages = useValue('pages', () => $deck.get().pages, [])
+  const pageIds = useValue($pageIds)
   const filenames = useValue($filenames)
   const currentIndex = useValue($currentIndex)
   const templates = useValue($templates)
@@ -166,8 +173,9 @@ export default function PageList() {
       <div className="py-2">
         {pages.map((page, i) => (
           <PageRow
-            key={filenames[i] ?? i}
+            key={pageIds[i] ?? i}
             index={i}
+            pageId={pageIds[i] ?? ''}
             page={page}
             filename={filenames[i] ?? ''}
             isActive={i === currentIndex}

@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Env files (secrets — use .env for LIVEBLOCKS_SECRET_KEY etc.)
+.env
+.env.*
+
+# Fable scratch state (Tailwind scan mirror of doc-stored templates)
+.fable/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -7,20 +7,97 @@ repository.
 
 - `npm run dev` (from repo root, or from `starter/main/`) — runs `fable dev` against the
   starter. The starter consumes the package via `file:../../`, so edits to `src/` hot-reload
-  through it.
+  through it. Editing requires `LIVEBLOCKS_SECRET_KEY` (env var or a `.env` file in the deck
+  directory); without it the dev server serves present mode only.
 - `npm run build` (from `starter/main/`) — runs `fable build`, output to
   `starter/main/dist/`.
-- `npm run tsc` (root) — type check the package.
+- `npm run tsc` (root) — type check the package. `cd server && npx tsc` for the server.
+- `npm test` — vitest (codec round-trips, bridge, template compile, EditShell).
 - `npm run fmt` / `npm run fmt:check` — Prettier.
 
-There is no test runner. PDF export was removed pending a cleaner re-implementation.
+PDF export was removed pending a cleaner re-implementation.
 
 ## Architecture
 
-Fable is published as `@oxide/fable` and consumed as **a CLI** (`fable dev`, `fable build`).
-The package ships TypeScript source (`src/`, `styles/src/`) plus a Node CLI (`bin/fable.js`)
-and a Vite runtime shell (`runtime/`). There's no separate build step for the package
-itself.
+Fable is published as `@oxide/fable` and consumed as **a CLI** (`fable dev`, `fable build`,
+`fable push`, `fable pull`). The package ships TypeScript source (`src/`, `styles/src/`)
+plus a Node CLI (`bin/fable.js`) and a Vite runtime shell (`runtime/`). There's no separate
+build step for the package itself. `server/` is a workspace package (`@oxide/fable-server`)
+hosting the deployable API.
+
+### Collaboration model (Liveblocks is the source of truth)
+
+**The directory is the theme; decks are rooms.** Every deck is a Liveblocks room holding one
+Yjs doc, addressed by URL (bare URL = deck index in `src/edit/DeckIndex.tsx`, backed by
+`GET /_fable/decks` in dev / `GET /api/decks` hosted, via `listDecks`). `content/` +
+`deck.yml` are an optional import/export format (push/pull, first-run seed, MCP default
+room) — the app itself never reads them. The doc layout (see `src/collab/doc.ts`):
+
+```
+meta:      Y.Map                  { title?, config?, v: 1 }
+order:     Y.Array<string>        page ids (nanoid)
+pages:     Y.Map<pageId, Y.Map>   { source: Y.Text, filename: string }
+templates: Y.Map<name, Y.Map>     { source: Y.Text }  — doc-stored TSX templates
+```
+
+Each page's `source` Y.Text holds exactly `serializePage()` output (frontmatter + body),
+parsed with `parsePage()` on read. `applyTextDiff` (fast-diff) writes minimal splices so
+concurrent edits merge cleanly.
+
+- **`src/collab/doc.ts`** — isomorphic codec: `seedDoc`, `readDeck`, `deckToYUpdate`,
+  `applyTextDiff`. Shared by browser, plugin, CLI, and server.
+- **`src/edit/collab/bridge.ts`** — wires a Y.Doc to the tldraw atoms. Read path: observers
+  reparse only changed page sources (last-good-parse cache; parse failures set `$pageErrors`
+  and keep the previous data). Write path: a `Backend` that parses current source, merges
+  the patch (`''` deletes a key), serializes, and applies a text diff inside
+  `ydoc.transact(fn, LOCAL_ORIGIN)`. Also compiles doc-stored templates into `$templates`.
+- **`src/edit/collab/room.tsx`** — `CollabRoot` (LiveblocksProvider + RoomProvider + Yjs
+  provider via `getYjsProviderForRoom`); gates children until synced, then connects the
+  bridge and publishes `$currentPageId` to presence.
+- **Undo** — one shared `Y.UndoManager` over `[order, pages, meta, templates]` tracking only
+  `LOCAL_ORIGIN`, so undo reverts only local edits. `src/edit/undo.ts` is the facade;
+  CodeMirror uses the same manager via `yCollab` + `yUndoManagerKeymap`.
+- **Doc-stored templates** — `src/collab/compile.ts` compiles TSX with sucrase
+  (typescript+jsx+imports → CJS) and evaluates with a require shim limited to `react`,
+  `zod`, `@oxide/fable`. Compile errors surface in the Templates tab; render errors hit
+  `TemplateErrorBoundary`. This is trusted-collaborator code execution — room-scoped, never
+  server-side. Note: sucrase elides unused imports.
+- **Tailwind for doc templates** — `src/node/doc-template-scan.ts` mirrors doc-template
+  sources into `<deck>/.fable/doc-templates/` (gitignored), which the plugin registers as an
+  `@source`. Synced by: the bridge (browser PUTs to `/_fable/doc-templates`), the MCP server
+  after template ops, dev-server startup, and `buildStart` when a secret is set. Two gotchas
+  fixed here: `fablePlugin` must come BEFORE `tailwindcss()` in the plugin array or Tailwind
+  consumes the CSS before the appended `@source` lines exist (they pass through verbatim),
+  and Tailwind doesn't rescan for NEW files — `reloadPackageCss` / the mcp `reloadCss`
+  callback reload the stylesheet module explicitly after a sync.
+- **Comments/presence** — Liveblocks Comments with `metadata: { pageId }` filtering
+  (`CommentsPanel`), avatars (`Avatars`, deduped by user id, click = jump to their slide),
+  per-page dots, and stage cursors in 1920×1080 stage coordinates (`StageCursors`).
+- **AI = local agents over MCP** — `fable mcp` (bin command) starts a stdio MCP server
+  (`src/node/mcp.ts`, loaded via ssrLoadModule with a silent Vite server that stays alive;
+  stdout carries the protocol, logs go to stderr). Tools: list/read/update/create/delete/
+  move_slide, set_deck_title, list/read/create/update/delete_template. Each call fetches the
+  room doc via `@liveblocks/node`, applies a pure op from `src/collab/ops.ts`, and sends the
+  diff update — edits appear live in open editors. `screenshot_slide` renders a slide at
+  1920×1080: the mcp command runs a full silent fable dev server (also the TS module
+  runner), and a headless system Chrome (playwright-core, `channel: 'chrome'`, override with
+  `FABLE_CHROME`) holds the deck open in `?pdf` mode — every slide at exact viewport size,
+  live-connected to the room — and element-screenshots the nth `main`. `?present` / `?pdf`
+  URL params force present mode in collab. Guardrails: slide sources must parse (`OpError` →
+  isError result the agent can act on), theme-template fields are strict-parsed for schema
+  warnings, template source is sucrase compile-validated. Server `instructions` document the
+  page-source format, workflow, and the theme's `aiInstructions` (`Theme.aiInstructions`,
+  authored per theme). The starter ships `.mcp.json` (`npx fable mcp`). The earlier
+  Liveblocks AI Copilots tab was removed (in git history) in favor of this; the inspector
+  tabs are Content / Source / Comments / Templates.
+
+### Store (`src/edit/store.ts`)
+
+State is keyed by stable page ids: `$pageIds`, `$pagesById`, `$filenamesById`,
+`$currentPageId`, with `$deck`/`$filenames`/`$currentIndex`/`$currentPage` as computeds so
+consumers stay index-friendly. Mutators (`updatePage`, `addPage`, …) take indices, resolve
+ids, and dispatch to the bridge's `Backend` (a `noopBackend` before connection). Components
+never mutate the atoms directly — the bridge round-trips every change through the doc.
 
 ### Consumer setup
 
@@ -28,9 +105,9 @@ A consumer's directory only needs:
 
 ```
 my-deck/
-  content/           # required: deck.yml + .md pages
-  templates/         # optional: custom .jsx/.tsx templates
+  templates/         # optional: theme-extension .jsx/.tsx templates (build-time)
   public/            # optional: static assets
+  content/           # optional: deck.yml + .md pages (import/export only)
   package.json       # depends on @oxide/fable; scripts: fable dev / fable build
 ```
 
@@ -41,89 +118,99 @@ content/template discovery from the user's cwd.
 ### CLI (`bin/fable.js`)
 
 `fable dev` / `fable build` programmatically invoke Vite with `configFile` pointing at
-`runtime/vite.config.ts`. The CLI sets `FABLE_USER_ROOT=process.cwd()` so the plugin knows
-where the consumer's `content/` and `templates/` live, and overrides `publicDir` and
-`build.outDir` to land inside the user's cwd.
+`runtime/vite.config.ts`, setting `FABLE_USER_ROOT=process.cwd()`. Every command first loads
+`.env` / `.env.local` / `.env.[mode]` from the deck directory into `process.env` (via Vite's
+`loadEnv`; real env vars win). `fable push` / `fable pull` sync `content/` with the room
+(they load the package's TS via a throwaway Vite server in middleware mode and
+`ssrLoadModule`); push refuses to overwrite a non-empty room without `--force`.
 
 ### What the plugin does (`src/plugin.ts`)
 
 Returns `[react(), tailwindcss(), fablePlugin]`. The `fablePlugin`:
 
 - Accepts a `userRoot` option (Vite's `root` lives inside the package in CLI mode but the
-  deck data lives in the user's cwd). Falls back to Vite's `root` for the legacy mode.
-- Defines a virtual module `virtual:fable/entry` whose generated source statically imports
-  the consumer's `content/` via `loadDeck`, statically imports every `*.{jsx,tsx}` it finds
-  under `<userRoot>/templates/`, and mounts `<App content={...} customTemplates={...} />`
-  into `#root`. `runtime/main.ts` is the actual Vite entry and just does
-  `import 'virtual:fable/entry'` — that's what makes the build pick it up.
-- `transform()`s `styles/src/index.css` to append a Tailwind v4 `@source` directive pointing
-  at the user's templates dir, so utility classes used in custom templates make it into the
-  emitted CSS (Tailwind's auto source detection doesn't follow files outside Vite's root).
-- Resolves bare specifiers from user templates: `@oxide/fable`, `@oxide/fable/styles`, and
-  `@oxide/fable/plugin` map to absolute paths inside the package; other bare specifiers
-  (e.g. `zod`) fall back to `createRequire(packageRoot).resolve(id)` so user templates can
-  reuse the package's own `node_modules`.
-- Adds `userRoot` to `server.fs.allow` and registers `content/` + `templates/` with
-  `server.watcher`, so files outside Vite's root get served and watched.
-- Exposes `/_fable/content` dev middleware (GET/PUT) for the in-page editor to read and
-  persist deck state.
-- Options: `{ contentDir?: string, templatesDir?: string, userRoot?: string }` (defaults
-  `'content'`, `'templates'`, Vite's `root`).
+  deck data lives in the user's cwd).
+- Defines `virtual:fable/entry`: statically imports the deck files (static present fallback)
+  and every `templates/*.{jsx,tsx}`, and mounts `<App content collab? />`. The `collab`
+  field (`{ roomId: string | null, authEndpoint, apiToken? }`) is emitted whenever auth is
+  available — `LIVEBLOCKS_SECRET_KEY` (dev → `/_fable/liveblocks-auth`) or
+  `VITE_FABLE_API_URL` (+ optional `VITE_FABLE_API_TOKEN`). The URL picks the deck
+  (`?deck=<id>` or first path segment, see `deckIdFromUrl` in App.tsx); the bare URL is the
+  deck index. New room ids are auto-created on first auth. The entry embeds no deck content
+  — the app is a pure room client.
+- Dev middleware: `POST /_fable/liveblocks-auth` (access-token auth via
+  `src/node/collab.ts`; identity = OS username, override with `FABLE_USER`). On dev start it
+  auto-seeds an empty room from `content/`.
+- `transform()`s the package CSS to append a Tailwind `@source` for the user's templates;
+  resolves `@oxide/fable` bare specifiers to package source; adds `userRoot` to
+  `server.fs.allow`; watches `content/` + `templates/` and full-reloads on change.
+
+### Node/server side
+
+- `src/node/deck-files.ts` — `loadDeck`/`serializeDeck` (files ⇄ plain content; preserves
+  `room:` in deck.yml).
+- `src/node/collab.ts` — `@liveblocks/node` helpers: `authorizeUser`, `seedRoom` (diff
+  update against current doc state), `exportRoom`, `RoomNotEmptyError`.
+- `server/src/app.ts` — Hono app: `POST /api/liveblocks-auth`, room CRUD,
+  `POST /api/rooms/:id/seed`, `GET /api/rooms/:id/export`, all behind a shared
+  `FABLE_AUTH_TOKEN` bearer (v1 auth; real identity is a later decision).
+  `server/src/main.ts` is the Node entry (`tsx`), env: `LIVEBLOCKS_SECRET_KEY`,
+  `FABLE_AUTH_TOKEN`, `PORT`.
 
 ### Runtime (`src/App.tsx`, `src/Page.tsx`)
 
-`App` receives `content` and `customTemplates` as props. Built-in templates are statically
-imported in `App.tsx` and merged with custom ones into a single `TemplateMap`
-(`{ [name]: { Template, Schema? } }`) passed to `Page`. `Page` looks up the template
-synchronously by `data.template` — no dynamic `import()`, no `window.ENV`, no async state.
+With `collab` set, `App` renders `CollabRoot` around the editor (edit mode) or a live
+present view reading `$deck`. Without it, the static build-time content renders in present
+mode only. Built-in templates come from the default theme (`src/themes/oxide`, a
+`Theme = { name, templates, css? }` from `src/theme.ts`), merged with file custom templates
+and doc-stored templates (doc > file > theme) into the `TemplateMap` that `Page` and
+`SchemaForm` consume.
 
-Per-slide validation: `Page.tsx` strips the routing keys (`template`, `custom_template`)
-from the data, then calls `.strict()` on the template's Zod schema before parsing. This
-catches typo'd keys (e.g. `text_typo` instead of `text`) without each template author having
-to remember `.strict()`. Validation errors render as an in-page table instead of throwing.
+Per-slide validation: `Page.tsx` strips routing keys and `.strict()`s the template's Zod
+schema; errors render as an in-page table instead of throwing.
+
+In-canvas editing: `<Markdown content field="…">` (templates/Util.tsx) renders normally
+until clicked on the edit stage, then swaps to a plaintext contentEditable holding the raw
+field markdown; blur commits the single field via the backend (synced + undoable), Escape
+cancels. String-array items work too: pass `fieldIndex` alongside `field` (see
+TitleMultiColumn) — the commit patches just that item within the array. Enabled by
+`CanvasEditContext`, provided only by the main-stage `Page` (via `onEditField` from
+EditView) — thumbnails/present are untouched. Mousetrap ignores contentEditable, and the
+global undo handler skips it so native text undo works while typing.
 
 ### Templates
 
-Built-in templates live in `src/templates/*.tsx`. Each module exports `Schema` (Zod) and
-`Template` (`({ data }) => JSX`). To add a new built-in, drop a file there and add it to the
-`builtInTemplates` map in `src/App.tsx`.
-
-Consumer custom templates live in `<consumer>/templates/*.{jsx,tsx}` and are auto-discovered
-by the plugin via `fs.readdir`. Custom templates can import shared utilities from the public
-package surface: `import { Markdown, FitText } from '@oxide/fable'`.
+Built-in templates live in `src/templates/*.tsx`; each exports `Schema` (Zod) and
+`Template`. To add a built-in, drop a file there and register it in
+`src/themes/oxide/index.ts`. Consumer file templates live in `<consumer>/templates/` and are
+compiled into the build; doc-stored templates live in the room and compile at runtime.
 
 ### Rendering model
 
 Slides render at a fixed `1920×1080` (16:9) and are scaled with CSS `transform` to fit the
-viewport. PDF mode (`?pdf=true`) stacks every page at `scale=1` and adds the `--pdf` class
-to `body`. (The PDF export script was removed and will be re-added.) Size things against the
-fixed 1920×1080 stage — viewport-relative units will not behave as you expect.
+viewport. Size things against the fixed stage — viewport-relative units will not behave as
+you expect. Presence cursors are stored in stage coordinates for the same reason.
 
 ### Styles
 
-Source CSS lives at `styles/src/index.css` (plus `lib/highlight.css` and `lib/pdf.css`). The
-virtual entry imports it via an absolute path so it works whether Vite's root is the
-consumer dir (legacy) or `runtime/` (CLI).
-
-Fonts (Inter + Inter Display) ship inside the package at `styles/src/fonts/`, declared via
-`@font-face` in the package CSS with relative `url('./fonts/...')` paths that Vite rewrites
-and asset-hashes during the consumer's build. The font-family is wired through CSS variables
-(`--fable-font-sans`, `--fable-font-display`) so consumers can swap fonts with a tiny CSS
-override (declare their own `@font-face` + reassign the variables). Plugin sets
-`server.fs.allow` to include the package root so the woff2 assets resolve via Vite's `/@fs/`
-route in dev.
+Source CSS lives at `styles/src/index.css` (plus `lib/highlight.css` and `lib/pdf.css`).
+Fonts (Inter + Inter Display) ship in the package with `@font-face` and CSS variables
+(`--fable-font-sans`, `--fable-font-display`) so consumers can swap fonts with a small CSS
+override. `@liveblocks/react-ui` styles are imported by `CommentsPanel`.
 
 ### `@oxide/create-fable`
 
-`starter/index.js` is the scaffolder (`npx @oxide/create-fable`). It does a recursive copy
-of `starter/main/` into the new project directory, with one file-specific transform:
-rewriting `package.json`'s `"@oxide/fable": "file:../../"` to the published version.
+`starter/index.js` scaffolds a new project from `starter/main/`, rewriting the
+`@oxide/fable` dependency to the published version and `deck.yml`'s `room:` to the project
+name (each new project gets its own room).
 
 ### Package exports & bin
 
 - `.` → `./src/index.ts` — browser runtime (`App`, `Markdown`, `FitText`, types)
 - `./plugin` → `./src/plugin.ts` — Vite plugin
-- `./styles` → `./styles/src/index.css` — source CSS, processed by consumer Vite
+- `./styles` → `./styles/src/index.css`
+- `./collab` → codec + compile; `./node` → Liveblocks node helpers; `./node/deck-files` →
+  file IO; `./themes/oxide` → default theme
 - bin: `fable` → `./bin/fable.js`
 
 ### Code style

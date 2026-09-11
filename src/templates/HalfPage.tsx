@@ -30,19 +30,19 @@ export const Template = ({ data }: { data: Schema }) => {
     <div className="flex">
       <div className="w-1/2 page-padding flex flex-col justify-center space-y-[20px]">
         {title && (
-          <h1 className="large-title !mb-[20px] text-indigo-300">
-            <Markdown content={title} />
+          <h1 className="large-title !mb-[20px]">
+            <Markdown content={title} field="title" />
           </h1>
         )}
 
         {text && (
           <div className="markdown body-md" style={{ fontSize: text_font_size }}>
-            <Markdown content={text} />
+            <Markdown content={text} field="text" />
           </div>
         )}
       </div>
 
-      <div className={`w-1/2 ${diagram ? 'bg-indigo-950' : ''} relative`}>
+      <div className={`w-1/2 ${diagram ? 'bg-raise' : ''} relative`}>
         {image ? (
           <img
             src={image}
@@ -53,7 +53,7 @@ export const Template = ({ data }: { data: Schema }) => {
           />
         ) : (
           <pre
-            className="h-full flex items-center justify-center !mt-0 !p-0 border-0 text-indigo-300"
+            className="h-full flex items-center justify-center !mt-0 !p-0 border-0 text-accent"
             style={{
               fontSize: diagram_font_size ? diagram_font_size : 'inherit',
               lineHeight: 1.4,

@@ -37,7 +37,7 @@ export const Template = ({ data }: { data: Schema }) => {
       {title && (
         <div className="page-padding">
           <h1 className="relative body-sm">
-            <Markdown content={title} />
+            <Markdown content={title} field="title" />
           </h1>
         </div>
       )}

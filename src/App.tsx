@@ -3,27 +3,26 @@ import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
 import Page from './Page'
-import type { TemplateMap, TemplateModule } from './Page'
+import type { TemplateMap } from './Page'
+import DeckIndex from './edit/DeckIndex'
 import EditShell from './edit/EditShell'
-import { redo, undo } from './edit/history'
-import { startPersist } from './edit/persist'
-import { $currentIndex, $deck, $filenames, $mode, initializeStore } from './edit/store'
+import StageCursors from './edit/collab/StageCursors'
+import { CollabRoot } from './edit/collab/room'
+import {
+  $currentIndex,
+  $currentPage,
+  $currentPageId,
+  $deck,
+  $inspectorWidth,
+  $mode,
+  $pageIds,
+  $templates,
+  setCurrentIndex,
+  updatePage,
+} from './edit/store'
+import { redo, undo } from './edit/undo'
 import { useKey } from './hooks/use-key'
-import * as Basic from './templates/Basic'
-import * as Cover from './templates/Cover'
-import * as FullPageDiagram from './templates/FullPageDiagram'
-import * as FullPageImage from './templates/FullPageImage'
-import * as HalfPage from './templates/HalfPage'
-import * as TitleMultiColumn from './templates/TitleMultiColumn'
-
-const builtInTemplates: TemplateMap = {
-  Basic: Basic as TemplateModule,
-  Cover: Cover as TemplateModule,
-  FullPageDiagram: FullPageDiagram as TemplateModule,
-  FullPageImage: FullPageImage as TemplateModule,
-  HalfPage: HalfPage as TemplateModule,
-  TitleMultiColumn: TitleMultiColumn as TemplateModule,
-}
+import oxideTheme from './themes/oxide'
 
 export const Schema = z.object({
   pages: z.any().array(),
@@ -31,37 +30,93 @@ export const Schema = z.object({
 
 type Content = {
   pages: any[]
+  title?: string
   config?: { page_numbers?: boolean }
 }
 
 type Props = {
-  content: Content
-  filenames?: string[]
   customTemplates?: TemplateMap
+  /**
+   * Collab availability (auth + deck-listing endpoints). The directory is
+   * the theme; decks live in rooms, picked by URL (?deck=<id> or the first
+   * path segment). The bare URL shows the deck index.
+   */
+  collab?: {
+    authEndpoint: string
+    decksEndpoint: string
+    apiToken?: string
+  }
 }
 
-const EDIT_SIDEBAR_WIDTH = 300 + 340
+const PAGE_LIST_WIDTH = 300
 
-export default function App({ content, filenames = [], customTemplates = {} }: Props) {
+/**
+ * The deck (= Liveblocks room id) named by the URL: ?deck=<id> wins, else
+ * the first path segment (`/my-deck`). Segments with a dot are files, not
+ * deck ids.
+ */
+function deckIdFromUrl(): string | null {
+  const url = new URL(window.location.href)
+  const param = url.searchParams.get('deck')
+  if (param) return param
+  const segment = url.pathname.split('/').filter(Boolean)[0]
+  if (segment && !segment.includes('.')) return decodeURIComponent(segment)
+  return null
+}
+
+export default function App({ customTemplates = {}, collab }: Props) {
   const mode = useValue($mode)
 
   const templates = useMemo(
-    () => ({ ...builtInTemplates, ...customTemplates }),
+    () => ({ ...oxideTheme.templates, ...customTemplates }),
     [customTemplates],
   )
 
-  const isPdf = useMemo(() => {
+  const { isPdf, urlPresent } = useMemo(() => {
     const params = new URL(document.location.toString()).searchParams
-    return params.get('pdf') !== null
+    return {
+      isPdf: params.get('pdf') !== null,
+      // ?present (and ?pdf, used by MCP screenshots) force present mode.
+      urlPresent: params.get('present') !== null,
+    }
   }, [])
 
-  if (mode === 'edit') initializeStore(content, filenames, templates)
+  const effectiveMode = isPdf || urlPresent ? 'present' : mode
 
-  return mode === 'edit' ? (
-    <EditView templates={templates} />
-  ) : (
-    <PresentView content={content} templates={templates} isPdf={isPdf} />
+  const roomId = useMemo(() => deckIdFromUrl(), [])
+
+  if (!collab) {
+    return (
+      <div className="fable-editor flex h-full items-center justify-center bg-default">
+        <div className="max-w-[440px] text-mono-xs text-quaternary p-6 border border-default rounded bg-raise">
+          Fable needs a backend: set <code>LIVEBLOCKS_SECRET_KEY</code> for local dev, or
+          build with <code>VITE_FABLE_API_URL</code> pointing at a fable server.
+        </div>
+      </div>
+    )
+  }
+
+  if (!roomId) return <DeckIndex config={collab} />
+
+  return (
+    <CollabRoot
+      config={{
+        roomId,
+        authEndpoint: collab.authEndpoint,
+        apiToken: collab.apiToken,
+      }}
+      baseTemplates={templates}
+    >
+      {effectiveMode === 'edit' ? <EditView /> : <LivePresentView isPdf={isPdf} />}
+    </CollabRoot>
   )
+}
+
+/** Present mode against the live room state instead of the static build. */
+function LivePresentView({ isPdf }: { isPdf: boolean }) {
+  const deck = useValue($deck)
+  const templates = useValue($templates)
+  return <PresentView content={deck} templates={templates} isPdf={isPdf} />
 }
 
 function PresentView({
@@ -149,9 +204,7 @@ function PresentView({
   )
 
   return (
-    <div
-      className={`w-full h-full relative ${isFullscreen ? 'bg-stage-900' : 'bg-[#333]'}`}
-    >
+    <div className={`w-full h-full relative ${isFullscreen ? 'bg-default' : 'bg-[#333]'}`}>
       {isPdf ? (
         content.pages.map((data, i) => (
           <Page
@@ -175,16 +228,17 @@ function PresentView({
   )
 }
 
-function EditView({ templates }: { templates: TemplateMap }) {
+function EditView() {
   const deck = useValue($deck)
+  const templates = useValue($templates)
   const currentIndex = useValue($currentIndex)
+  const currentPageId = useValue($currentPageId)
+  const inspectorWidth = useValue($inspectorWidth)
   const [scale, setScale] = useState(1.0)
-
-  useEffect(() => startPersist(), [])
 
   useEffect(() => {
     function checkScale() {
-      const stageWidth = window.innerWidth - EDIT_SIDEBAR_WIDTH
+      const stageWidth = window.innerWidth - PAGE_LIST_WIDTH - inspectorWidth
       const widthScale = stageWidth / 1920
       const heightScale = window.innerHeight / 1080
       setScale((widthScale < heightScale ? widthScale : heightScale) * 0.9)
@@ -192,7 +246,7 @@ function EditView({ templates }: { templates: TemplateMap }) {
     checkScale()
     addEventListener('resize', checkScale)
     return () => removeEventListener('resize', checkScale)
-  }, [])
+  }, [inspectorWidth])
 
   useEffect(() => {
     const url = new URL(window.location.href)
@@ -210,9 +264,11 @@ function EditView({ templates }: { templates: TemplateMap }) {
       if (!mod) return
       const key = e.key.toLowerCase()
       if (key !== 'z' && key !== 'y') return
-      // Defer to CodeMirror when focus is inside its editor.
-      const target = e.target as Element | null
+      // Defer to CodeMirror (yUndoManagerKeymap routes to the same shared
+      // UndoManager) and to native undo inside in-canvas text editing.
+      const target = e.target as HTMLElement | null
       if (target?.closest?.('.cm-editor')) return
+      if (target?.isContentEditable) return
       e.preventDefault()
       e.stopPropagation()
       if (key === 'y' || (key === 'z' && e.shiftKey)) redo()
@@ -223,12 +279,11 @@ function EditView({ templates }: { templates: TemplateMap }) {
   }, [])
 
   const prevPage = () => {
-    const i = $currentIndex.get()
-    if (i > 0) $currentIndex.set(i - 1)
+    setCurrentIndex($currentIndex.get() - 1)
   }
   const nextPage = () => {
     const i = $currentIndex.get()
-    if (i < $deck.get().pages.length - 1) $currentIndex.set(i + 1)
+    if (i < $pageIds.get().length - 1) setCurrentIndex(i + 1)
   }
   useKey('left', prevPage)
   useKey('right', nextPage)
@@ -244,10 +299,21 @@ function EditView({ templates }: { templates: TemplateMap }) {
       <div className="w-full h-full relative bg-[#333]">
         {data ? (
           <Page
-            key={`${currentIndex}-${$filenames.get()[currentIndex] ?? ''}`}
+            key={currentPageId ?? currentIndex}
             data={data}
             scale={scale}
             templates={templates}
+            onEditField={(field, value, index) => {
+              if (index === undefined) {
+                updatePage($currentIndex.get(), { [field]: value })
+                return
+              }
+              // String-array item: patch the array with the item replaced.
+              const current = ($currentPage.get() as any)?.[field]
+              const items = Array.isArray(current) ? current.slice() : []
+              items[index] = value
+              updatePage($currentIndex.get(), { [field]: items })
+            }}
             pageNumber={
               showPageNumbers ? (
                 <div className="absolute bottom-[40px] right-[40px] opacity-40 text-sans-sm">
@@ -261,6 +327,7 @@ function EditView({ templates }: { templates: TemplateMap }) {
             No pages — click “new slide” in the sidebar.
           </div>
         )}
+        <StageCursors scale={scale} />
       </div>
     </EditShell>
   )

@@ -14,15 +14,15 @@ export const Template = ({ data }: { data: Schema }) => {
   const { title, diagram, diagram_font_size } = data
 
   return (
-    <div className="page-padding flex flex-col bg-indigo-950">
+    <div className="page-padding flex flex-col bg-raise">
       {title && (
-        <h1 className="body-sm !text-indigo-500">
-          <Markdown content={title} />
+        <h1 className="body-sm !text-tertiary">
+          <Markdown content={title} field="title" />
         </h1>
       )}
 
       <pre
-        className="h-full flex items-center justify-center !mt-0 !p-0 border-0 text-indigo-300"
+        className="h-full flex items-center justify-center !mt-0 !p-0 border-0 text-accent"
         style={{
           fontSize: diagram_font_size ? diagram_font_size : 'inherit',
           lineHeight: 1.4,

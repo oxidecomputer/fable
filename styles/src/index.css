@@ -19,23 +19,7 @@
 
 @custom-variant children (& > *);
 
-/* Slide-template palette — preserves the look of the deck templates which
- * predate the design-system integration. Values mirror Tailwind v3's
- * `neutral` scale; we use a different name so the design-system's own
- * surface tokens (which reference --color-neutral-*) keep working. */
 @theme {
-  --color-stage-50: #fafafa;
-  --color-stage-100: #f5f5f5;
-  --color-stage-200: #e5e5e5;
-  --color-stage-300: #d4d4d4;
-  --color-stage-400: #a3a3a3;
-  --color-stage-500: #737373;
-  --color-stage-600: #525252;
-  --color-stage-700: #404040;
-  --color-stage-800: #262626;
-  --color-stage-900: #171717;
-  --color-stage-950: #0a0a0a;
-
   --color-indigo-300: #a5b4fc;
   --color-indigo-400: #818cf8;
   --color-indigo-500: #6366f1;
@@ -133,9 +117,14 @@
   font-style: normal;
 }
 
+/* Oxide theme defaults: SuisseIntl for prose and display (hierarchy comes
+ * from tone, not weight — see the theme's design.md). The Inter faces above
+ * still ship in the package; consumers can revert by reassigning these vars. */
 :root {
-  --fable-font-sans: 'Inter', sans-serif;
-  --fable-font-display: 'Inter Display', sans-serif;
+  --fable-font-sans: 'SuisseIntl', -apple-system, BlinkMacSystemFont, Helvetica, Arial,
+    sans-serif;
+  --fable-font-display: 'SuisseIntl', -apple-system, BlinkMacSystemFont, Helvetica, Arial,
+    sans-serif;
 }
 
 html,
@@ -145,11 +134,11 @@ body {
     'case' on;
   -webkit-text-stroke: 0;
 
-  @apply bg-stage-800 m-0 h-full;
+  @apply bg-default m-0 h-full;
 }
 
 body {
-  @apply text-stage-300;
+  @apply text-default;
   font-family: var(--fable-font-sans);
 }
 
@@ -176,11 +165,12 @@ body {
 }
 
 .large-title {
-  @apply text-5xl font-light mb-12 pr-20;
+  @apply text-5xl font-light mb-12 pr-20 text-raise;
+  letter-spacing: -0.01em;
 }
 
 .body-md {
-  @apply text-2xl text-stage-400;
+  @apply text-2xl text-tertiary;
   line-height: 1.33;
 }
 
@@ -189,11 +179,26 @@ body {
 }
 
 .body-sm {
-  @apply text-base text-stage-400;
+  @apply text-base text-tertiary;
 }
 
 .markdown {
   @apply flex flex-col space-y-5;
+}
+
+/* In-canvas text editing (edit stage only — see CanvasEditContext). */
+.fable-editable {
+  cursor: text;
+  border-radius: 2px;
+  outline: 1px dashed transparent;
+  outline-offset: 6px;
+  transition: outline-color 120ms ease;
+}
+.fable-editable:hover {
+  outline-color: var(--stroke-default, #333);
+}
+.fable-editable-active {
+  outline: 1px solid var(--stroke-accent, #48d597) !important;
 }
 
 .markdown > *:last-child {
@@ -208,31 +213,31 @@ body {
 
 .error-table td,
 .error-table th {
-  @apply uppercase border border-stage-400 text-left p-2;
+  @apply uppercase border border-default text-left p-2;
 }
 
 .error-table th {
-  @apply bg-stage-300 text-stage-400;
+  @apply bg-raise text-tertiary;
 }
 
 .error-table td {
-  @apply bg-stage-900;
+  @apply bg-default;
 }
 
 .list-item {
-  @apply border-b border-stage-400 text-3xl text-stage-400 py-8 pr-20;
+  @apply border-b border-default text-3xl text-tertiary py-8 pr-20;
 }
 
 code:not(pre code) {
-  @apply border rounded border-stage-600 bg-stage-800 px-1 py-0 ml-1 mr-1 text-[0.825em];
+  @apply border rounded border-default bg-raise px-1 py-0 ml-1 mr-1 text-[0.825em];
 }
 
 em {
-  @apply text-indigo-300 not-italic;
+  @apply text-accent not-italic;
 }
 
 strong {
-  @apply font-semibold text-stage-200;
+  @apply font-semibold text-raise;
 }
 
 .markdown ul,
@@ -248,7 +253,7 @@ ol {
 
 ul li::marker,
 ol li::marker {
-  @apply text-stage-400;
+  @apply text-tertiary;
 }
 
 ul li,
@@ -285,7 +290,7 @@ ul .list-item:first-of-type {
 }
 
 pre {
-  @apply border border-stage-600 rounded-lg p-5 mt-10 mb-5 leading-[1];
+  @apply border border-default rounded-lg p-5 mt-10 mb-5 leading-[1];
 }
 
 pre code {

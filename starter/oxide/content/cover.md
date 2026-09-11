@@ -1,4 +1,0 @@
----
-template: Cover
-title: Oxide
----

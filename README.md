@@ -36,9 +36,11 @@ title: A Journey Through the Cosmos
 - They are **united** in their quest for knowledge and understanding
 ```
 
-Pages are listed in order in `content/deck.yml`:
+Pages are listed in order in `content/deck.yml`, which also names the deck's Liveblocks
+room:
 
 ```yaml
+room: my-deck
 config:
   page_numbers: true
 pages:
@@ -127,9 +129,108 @@ the CSS variables:
 
 Import it from any custom template (`import '/styles.css'`) and the overrides take effect.
 
+## Multiplayer
+
+The live deck is a [Liveblocks](https://liveblocks.io/) room (a Yjs document); the files in
+`content/` are its import/export format. Editing — the sidebar, schema forms, the raw source
+tab, comments, presence, MCP agents — always happens against the room, so any number of
+collaborators can edit at once and undo only reverts your own changes.
+
+For local dev, put your secret key in a `.env` file next to `content/` (or export it):
+
+```sh
+# .env (gitignored)
+LIVEBLOCKS_SECRET_KEY=sk_...   # from liveblocks.io
+```
+
+The CLI loads `.env`, `.env.local`, and `.env.[mode]` from the deck directory for every
+command — including `fable mcp` (`VITE_FABLE_API_URL` / `VITE_FABLE_API_TOKEN` work there
+too); real environment variables take precedence. The server loads its own `./.env` the same
+way.
+
+**The directory is the theme, not a deck.** A Fable project holds templates, styles, and
+assets; decks live entirely in rooms and are addressed by URL: the bare URL is a **deck
+index** (open or create decks), and `/?deck=<room-id>` (or a path like `/my-deck`) opens one
+— visiting a new id creates a fresh, empty deck on the spot.
+
+`content/` + `deck.yml` are optional: an import/export format for file-based sync, not app
+config. If present, `fable dev` seeds that room on first run, and it's the default deck for
+`fable push`/`pull` and the MCP server — whose tools also take a `deck` argument (plus a
+`list_decks` tool), so one MCP session can work across every deck in the workspace. Sync
+explicitly:
+
+```
+fable push [--force]   Seed the room from content/ (refuses to overwrite unless --force)
+fable pull             Export the room back into content/ as clean markdown
+```
+
+Without a secret key, `fable dev` serves the deck in present mode from the files.
+
+### Doc-stored templates
+
+Besides file-based custom templates (compiled into the build), the editor's **Templates**
+tab stores TSX template modules directly in the room. They're compiled in the browser
+(sucrase) and update live for everyone — no redeploy. Imports are limited to `react`, `zod`,
+and `@oxide/fable`; a broken template shows a compile error without taking down the deck.
+Their Tailwind classes work too: sources are mirrored into a gitignored `.fable/` scratch
+dir that Tailwind scans, kept in sync by the dev server, the MCP server, and (when
+`LIVEBLOCKS_SECRET_KEY` is available) production builds. Note that templates run as code in
+every collaborator's browser — only share rooms with people you trust.
+
+### AI agents (MCP)
+
+`fable mcp` runs an [MCP](https://modelcontextprotocol.io/) server over stdio that exposes
+the deck's live room to local agents like Claude Code or Codex. Register it from the deck
+directory (the starter ships a `.mcp.json` that Claude Code picks up automatically):
+
+```sh
+claude mcp add fable -- npx fable mcp
+```
+
+If your agent session runs from a different directory (e.g. a monorepo root), point the
+server at the deck with `--dir`: `npx fable mcp --dir path/to/deck`.
+
+The agent gets the deck outline (`list_slides` / `read_deck`), slide sources, template
+schemas with canonical examples (`list_templates`), and the theme's design vocabulary
+(`read_theme` — the full stylesheet plus the theme author's instructions), plus tools to
+create/update/move/delete slides, read/create/edit custom doc-stored templates, and drop
+static files into `public/` (`add_asset`). Every edit is fetched-mutated-pushed through the
+Liveblocks room, so it appears instantly in every open editor. A `screenshot_slide` tool
+renders any slide from the live room at 1920×1080 (via a headless system Chrome), so the
+agent can verify its edits actually look right instead of assuming success — the result also
+reports any elements overflowing the stage, with pixel amounts. By default the MCP process
+serves the deck app itself; pass `--render-url <url>` (or set `FABLE_RENDER_URL`) to
+screenshot the deployed deck instead — it's connected to the same room and shows exactly
+what collaborators see in production (built templates rather than your working tree).
+Guardrails keep it idiomatic: slide sources must parse, field values are checked against the
+template's zod schema (warnings reported back to the agent), and template source is
+compile-validated before saving — the agent is told to prefer existing templates and fork
+from the closest one when a new layout is needed.
+
+Theme authors can steer agents via `aiInstructions` on the `Theme` object — it's included in
+the MCP server's instructions. The Oxide theme, for example, describes when to reach for
+each template and the deck's style idioms.
+
+### Hosted deployment
+
+`server/` contains `@oxide/fable-server`, a small Hono app exposing Liveblocks auth, room
+seed/export, and room CRUD. Deploy it anywhere Node runs with `LIVEBLOCKS_SECRET_KEY`,
+`FABLE_AUTH_TOKEN`, and (optionally) `PORT` set. Then build the deck against it:
+
+```sh
+VITE_FABLE_API_URL=https://fable-api.example.com \
+VITE_FABLE_API_TOKEN=<FABLE_AUTH_TOKEN> \
+fable build
+```
+
+The built static deck connects to the room for live editing and presenting.
+
 ## CLI
 
 ```
 fable dev     Start the dev server in the current directory
 fable build   Build a production deck into ./dist
+fable push    Seed the deck's room from content/ (--force to overwrite)
+fable pull    Export the deck's room back into content/
+fable mcp     MCP server (stdio) exposing the room to local agents
 ```
