@@ -22,12 +22,11 @@ export const Template = ({ data }: { data: Schema }) => {
       <Silkscreen opacity={0.25} />
       <GridLines />
       <HeaderBand />
-      {/* Title's (last) baseline sits seven rows up from the bottom, leaving
-          the bottom band to the grid lines. */}
       <DeckText
         style="display-lg"
         row={15}
         anchor="baseline"
+        autofit={{ lines: 2 }}
         className="deck-accent"
         as="h1"
       >

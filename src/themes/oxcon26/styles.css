@@ -47,8 +47,11 @@
 .deck-text-sm,
 .deck-text-md,
 .deck-text-lg,
+.deck-text-xl,
 .deck-display-sm,
+.deck-display-sm-md,
 .deck-display-md,
+.deck-display-md-lg,
 .deck-display-lg {
   font-family: 'SuisseIntl', sans-serif;
   font-weight: 400;
@@ -78,9 +81,23 @@
   letter-spacing: -0.02em;
 }
 
+/* The -xl / -sm-md / -md-lg steps fill the ramp's big gaps (no Figma
+ * counterparts) so autofit can step down gently; same grid registration. */
+.deck-text-xl {
+  font-size: 68px;
+  line-height: calc(var(--grid-cell-h) * 5 / 3);
+  letter-spacing: -0.025em;
+}
+
 .deck-display-sm {
   font-size: 90px;
   line-height: calc(var(--grid-cell-h) * 2);
+  letter-spacing: -0.03em;
+}
+
+.deck-display-sm-md {
+  font-size: 110px;
+  line-height: calc(var(--grid-cell-h) * 5 / 2);
   letter-spacing: -0.03em;
 }
 
@@ -88,6 +105,12 @@
   font-size: 135px;
   line-height: calc(var(--grid-cell-h) * 3);
   letter-spacing: -0.03em;
+}
+
+.deck-display-md-lg {
+  font-size: 180px;
+  line-height: calc(var(--grid-cell-h) * 4);
+  letter-spacing: -0.035em;
 }
 
 .deck-display-lg {
@@ -100,14 +123,17 @@
  * the deck class sits on the Markdown component itself or on a wrapper (e.g.
  * DeckText) around it, without spacing non-markdown block children. */
 :is(.markdown.deck-text-xs, .deck-text-xs .markdown) > :not(:last-child),
+:is(.markdown.deck-display-sm-md, .deck-display-sm-md .markdown) > :not(:last-child),
 :is(.markdown.deck-display-md, .deck-display-md .markdown) > :not(:last-child),
+:is(.markdown.deck-display-md-lg, .deck-display-md-lg .markdown) > :not(:last-child),
 :is(.markdown.deck-display-lg, .deck-display-lg .markdown) > :not(:last-child) {
   margin-block-end: 0;
 }
 
 :is(.markdown.deck-text-sm, .deck-text-sm .markdown) > :not(:last-child),
 :is(.markdown.deck-text-md, .deck-text-md .markdown) > :not(:last-child),
-:is(.markdown.deck-text-lg, .deck-text-lg .markdown) > :not(:last-child) {
+:is(.markdown.deck-text-lg, .deck-text-lg .markdown) > :not(:last-child),
+:is(.markdown.deck-text-xl, .deck-text-xl .markdown) > :not(:last-child) {
   margin-block-end: calc(var(--grid-cell-h) / 2);
 }
 

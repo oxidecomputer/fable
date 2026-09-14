@@ -20,6 +20,7 @@ import {
 } from './node/collab'
 import { loadDeck } from './node/deck-files'
 import { docTemplateScratchDir, syncDocTemplateScratch } from './node/doc-template-scan'
+import { mcpHeartbeatFresh } from './node/mcp-heartbeat'
 import { discoverTemplates, resolveThemeEntry } from './node/templates'
 
 export type FableOptions = {
@@ -181,6 +182,21 @@ function attachFilesMiddleware(server: ViteDevServer, secret: string) {
   })
 }
 
+/**
+ * MCP status for the editor's sidebar indicator: whether a `fable mcp`
+ * process is currently running against this deck directory (it writes a
+ * heartbeat file under `.fable/` that this endpoint checks for freshness).
+ */
+function attachMcpStatusMiddleware(server: ViteDevServer, userRoot: string) {
+  server.middlewares.use('/_fable/mcp', async (req, res) => {
+    if (req.method !== 'GET') {
+      sendJson(res, 405, { error: 'GET only' })
+      return
+    }
+    sendJson(res, 200, { active: await mcpHeartbeatFresh(userRoot) })
+  })
+}
+
 /** Deck index data: rooms with titles/sizes, for the app's landing page. */
 function attachDecksMiddleware(server: ViteDevServer, secret: string) {
   server.middlewares.use('/_fable/decks', async (req, res) => {
@@ -288,6 +304,7 @@ export default function fable(options: FableOptions = {}): PluginOption {
     },
 
     configureServer(server) {
+      attachMcpStatusMiddleware(server, userRoot)
       const secret = process.env.LIVEBLOCKS_SECRET_KEY
       if (secret) {
         attachLiveblocksMiddleware(server, secret)

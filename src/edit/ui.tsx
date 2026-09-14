@@ -35,7 +35,7 @@ export function Button({
 export function Select({ className = '', ...props }: ComponentProps<'select'>) {
   return (
     <select
-      className={`bg-default border border-default rounded text-sans-sm px-2 py-1.5 text-default focus:outline-none focus:border-accent-secondary disabled:opacity-50 ${className}`}
+      className={`fable-select bg-default border border-default rounded text-sans-sm py-1.5 pl-2 pr-7 text-default disabled:opacity-50 ${className}`}
       {...props}
     />
   )

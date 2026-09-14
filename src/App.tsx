@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 import Page from './Page'
 import { imageFieldKeys } from './collab/fields'
-import DeckIndex from './edit/DeckIndex'
+import { DeckSelectHost, DeckSelectModal } from './edit/DeckSelect'
 import EditShell from './edit/EditShell'
 import { CollabRoot } from './edit/collab/room'
 import {
@@ -43,7 +43,8 @@ type Props = {
   /**
    * Collab availability (auth + deck-listing endpoints). The directory is
    * the theme; decks live in rooms, picked by URL (?deck=<id> or the first
-   * path segment). The bare URL shows the deck index.
+   * path segment). The bare URL shows an empty editor frame with the
+   * deck-select modal forced open.
    */
   collab?: {
     authEndpoint: string
@@ -102,7 +103,18 @@ export default function App({ customTemplates = {}, collab, theme = oxcon26Theme
     )
   }
 
-  if (!roomId) return <DeckIndex config={collab} />
+  if (!roomId) {
+    // No deck selected: keep the editor frame (empty) with the deck-select
+    // modal forced open (no onClose) on top.
+    return (
+      <>
+        <EditShell presence={false}>
+          <div className="w-full h-full bg-[#333]" />
+        </EditShell>
+        <DeckSelectModal config={collab} />
+      </>
+    )
+  }
 
   return (
     <CollabRoot
@@ -125,6 +137,7 @@ export default function App({ customTemplates = {}, collab, theme = oxcon26Theme
           <LivePresentView isPdf={isPdf} />
         )}
       </RoomFilesProvider>
+      <DeckSelectHost config={collab} currentDeckId={roomId} />
     </CollabRoot>
   )
 }

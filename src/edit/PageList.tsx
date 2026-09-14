@@ -2,6 +2,7 @@ import { useValue } from '@tldraw/state-react'
 import { type KeyboardEvent, memo, useEffect, useRef } from 'react'
 
 import Page, { type TemplateMap } from '../Page'
+import { openDeckSelect } from './DeckSelect'
 import { PagePresenceDots } from './collab/Avatars'
 import {
   $currentIndex,
@@ -155,14 +156,31 @@ function Header() {
 
   return (
     <div className="sticky top-0 bg-raise z-10 border-b border-default">
-      <div className="px-3 pt-3 pb-2">
+      <div className="px-3 pt-3 pb-2 flex items-center gap-1">
         <Input
           variant="ghost"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Untitled deck"
-          className="w-full -mx-1"
+          className="flex-1 min-w-0 -mx-1"
         />
+        <button
+          type="button"
+          onClick={openDeckSelect}
+          title="Switch deck"
+          aria-label="Switch deck"
+          className="shrink-0 p-1 rounded text-quaternary hover:text-default hover:bg-hover"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+            <path
+              d="M2.5 4.5L6 8l3.5-3.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
       </div>
       <div className="px-3 pb-3 flex gap-1">
         <Button

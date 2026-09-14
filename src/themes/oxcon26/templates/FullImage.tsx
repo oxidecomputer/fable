@@ -19,8 +19,6 @@ export const Schema = z.object({
 type Schema = z.infer<typeof Schema>
 
 export const Template = ({ data }: { data: Schema }) => {
-  // Tone picks the overlay text color for the image (dark = light text, the
-  // default); the slide surface itself is hidden behind the full-bleed image.
   return (
     <Slide tone={data.variant ?? 'dark'}>
       <SlideImage

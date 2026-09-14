@@ -11,7 +11,7 @@ export const Template = ({ data }: { data: Schema }) => {
   return (
     <Slide tone="light">
       <HeaderBand />
-      <DeckText style="display-sm" row={4} anchor="first-baseline">
+      <DeckText style="display-sm" row={4} autofit anchor="first-baseline">
         <Markdown content={data.text} field="text" />
       </DeckText>
     </Slide>

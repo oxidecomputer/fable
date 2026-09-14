@@ -59,22 +59,26 @@ too.
 
 ## Type ramp
 
-Deck text styles (`styles.css`), one class per Figma `deck/*` style. Line heights are exact
-cell multiples of the grid (`--grid-cell` = 1080/22 ≈ 49.09px), so flowed text keeps the
-vertical rhythm; put the class on the text block (or directly on a `Markdown` component —
-paragraph spacing is built in).
+Deck text styles (`styles.css`), one class per Figma `deck/*` style, plus in-between steps
+(marked "tween") that fill the ramp's big gaps so `DeckText`'s autofit can step down gently.
+Line heights are exact cell multiples of the grid (`--grid-cell` = 1080/22 ≈ 49.09px), so
+flowed text keeps the vertical rhythm; put the class on the text block (or directly on a
+`Markdown` component — paragraph spacing is built in).
 
-| class             | font        | size  | line height | tracking | notes            |
-| ----------------- | ----------- | ----- | ----------- | -------- | ---------------- |
-| `deck-mono-sm`    | GT Mono     | 20px  | ½ cell      | +4%      | uppercase        |
-| `deck-mono-md`    | GT Mono     | 30px  | 1 cell      | +4%      | uppercase        |
-| `deck-text-xs`    | Suisse Intl | 20px  | ½ cell      | −1.5%    |                  |
-| `deck-text-sm`    | Suisse Intl | 28px  | ⅔ cell      | −1.5%    | ¶ spacing ½ cell |
-| `deck-text-md`    | Suisse Intl | 40px  | 1 cell      | −1.5%    | ¶ spacing ½ cell |
-| `deck-text-lg`    | Suisse Intl | 54px  | 1⅓ cells    | −2%      | ¶ spacing ½ cell |
-| `deck-display-sm` | Suisse Intl | 90px  | 2 cells     | −3%      | ¶ spacing 45px   |
-| `deck-display-md` | Suisse Intl | 135px | 3 cells     | −3%      |                  |
-| `deck-display-lg` | Suisse Intl | 245px | 5 cells     | −4%      |                  |
+| class                | font        | size  | line height | tracking | notes            |
+| -------------------- | ----------- | ----- | ----------- | -------- | ---------------- |
+| `deck-mono-sm`       | GT Mono     | 20px  | ½ cell      | +4%      | uppercase        |
+| `deck-mono-md`       | GT Mono     | 30px  | 1 cell      | +4%      | uppercase        |
+| `deck-text-xs`       | Suisse Intl | 20px  | ½ cell      | −1.5%    |                  |
+| `deck-text-sm`       | Suisse Intl | 28px  | ⅔ cell      | −1.5%    | ¶ spacing ½ cell |
+| `deck-text-md`       | Suisse Intl | 40px  | 1 cell      | −1.5%    | ¶ spacing ½ cell |
+| `deck-text-lg`       | Suisse Intl | 54px  | 1⅓ cells    | −2%      | ¶ spacing ½ cell |
+| `deck-text-xl`       | Suisse Intl | 68px  | 1⅔ cells    | −2.5%    | tween            |
+| `deck-display-sm`    | Suisse Intl | 90px  | 2 cells     | −3%      | ¶ spacing 45px   |
+| `deck-display-sm-md` | Suisse Intl | 110px | 2½ cells    | −3%      | tween            |
+| `deck-display-md`    | Suisse Intl | 135px | 3 cells     | −3%      |                  |
+| `deck-display-md-lg` | Suisse Intl | 180px | 4 cells     | −3.5%    | tween            |
+| `deck-display-lg`    | Suisse Intl | 245px | 5 cells     | −4%      |                  |
 
 These style flowed text; for baseline-seated blocks keep using `useCapsize` + `place` (the
 ramp's sizes and line heights are the same numbers those produce — e.g. the Title template's

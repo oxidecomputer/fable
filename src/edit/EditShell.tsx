@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { missingFieldPlaceholders } from '../content/placeholders'
 import { unwrapEffects } from '../templates/validation'
+import McpStatus from './McpStatus'
 import PageList from './PageList'
 import RawEditor from './RawEditor'
 import Avatars from './collab/Avatars'
@@ -22,7 +23,11 @@ import {
 import { Button, NoticeBox, Select } from './ui'
 import { useSchemaErrors } from './useSchemaErrors'
 
-type Props = { children: ReactNode }
+type Props = {
+  children: ReactNode
+  /** Presence UI (avatars) needs a live room; off for the no-deck empty frame. */
+  presence?: boolean
+}
 
 type Tab = 'source' | 'templates'
 
@@ -101,7 +106,7 @@ function ResizeHandle() {
   )
 }
 
-export default function EditShell({ children }: Props) {
+export default function EditShell({ children, presence = true }: Props) {
   const page = useValue($currentPage)
   const pageId = useValue($currentPageId)
   const templates = useValue($templates)
@@ -129,13 +134,16 @@ export default function EditShell({ children }: Props) {
         <div className="flex-1 overflow-y-auto">
           <PageList />
         </div>
+        <McpStatus />
       </aside>
 
       <div className="flex-1 stage relative bg-default">
         {children}
-        <div className="absolute top-3 right-3 z-10">
-          <Avatars />
-        </div>
+        {presence && (
+          <div className="absolute top-3 right-3 z-10">
+            <Avatars />
+          </div>
+        )}
         {otherErrors.length > 0 && (
           <NoticeBox className="absolute bottom-3 left-1/2 -translate-x-1/2 max-w-[80%] px-3 py-1.5 text-sans-sm backdrop-blur-sm shadow-lg">
             <div className="font-medium mb-0.5">
@@ -228,7 +236,7 @@ export default function EditShell({ children }: Props) {
           </TabButton>
         </header>
 
-        <section className="flex-1 min-h-0 flex flex-col p-3">
+        <section className="flex-1 min-h-0 flex flex-col">
           {tab === 'source' ? <RawEditor /> : <TemplatesPanel />}
         </section>
       </aside>

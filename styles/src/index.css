@@ -115,6 +115,7 @@ body,
 #root {
   height: 100%;
   overscroll-behavior-y: none;
+  background-color: var(--surface-default);
 }
 
 /* In-canvas text editing (edit stage only — see CanvasEditContext). */
@@ -153,7 +154,6 @@ body,
   -webkit-font-smoothing: antialiased;
   font-size: 14px;
   color: var(--content-default);
-  background-color: var(--surface-default);
 }
 
 .fable-editor hr {
@@ -163,6 +163,28 @@ body,
 .fable-editor label {
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* Select controls (ui.tsx Select) — chevron, hover highlight, and focus ring
+ * ported from mitos (InputSelect.css), mapped onto the Oxide tokens. */
+.fable-select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: border-color 120ms ease;
+}
+.fable-select:hover {
+  border-color: var(--stroke-accent, #48d597);
+}
+.fable-select:focus {
+  outline: none;
+  border-color: var(--stroke-accent, #48d597);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--stroke-accent, #48d597) 40%, transparent);
+}
+.fable-select:disabled {
+  cursor: not-allowed;
 }
 
 .fable-editor .link-with-underline {

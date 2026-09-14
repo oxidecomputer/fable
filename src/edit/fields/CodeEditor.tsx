@@ -169,7 +169,7 @@ export default function CodeEditor({
         onBlur={handleBlur}
         className={`${
           fill ? 'flex-1 min-h-0' : ''
-        } overflow-hidden rounded border focus-within:border-accent-secondary ${
+        } overflow-hidden focus-within:border-accent-secondary ${
           hasError ? 'border-destructive' : 'border-default'
         }`}
       >

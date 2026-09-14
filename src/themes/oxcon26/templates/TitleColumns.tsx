@@ -24,7 +24,6 @@ type Schema = z.infer<typeof Schema>
 
 export const Template = ({ data }: { data: Schema }) => {
   const grid = stageGrid
-  // Text columns share the 8 layout columns left of the image.
   const span = Math.min(4, Math.floor(8 / Math.max(data.columns.length, 1)))
 
   return (

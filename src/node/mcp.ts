@@ -22,6 +22,7 @@ import {
   uploadRoomFile,
 } from './collab'
 import { syncDocTemplateScratch } from './doc-template-scan'
+import { startMcpHeartbeat } from './mcp-heartbeat'
 
 /**
  * Fable MCP server: exposes a deck's Liveblocks room to local agents (Claude
@@ -101,6 +102,8 @@ export async function createMcpServer({
 }: McpServerOptions) {
   const liveblocks = createLiveblocks(secret)
   const compiler = createTemplateCompiler(deckTheme.templateExports)
+  // The editor's sidebar MCP indicator reads this via the dev middleware.
+  const stopHeartbeat = startMcpHeartbeat(userRoot)
 
   async function templateRegistry(ydoc: Y.Doc) {
     return resolveTemplates(
@@ -732,6 +735,7 @@ ${deckTheme.aiInstructions ?? 'none'}`,
   return {
     server,
     async dispose() {
+      await stopHeartbeat()
       await browser?.close().catch(() => {})
       await server.close()
     },
