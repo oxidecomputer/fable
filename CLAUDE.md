@@ -32,9 +32,9 @@ hosting the deployable API.
 **The directory is the theme; decks are rooms.** Every deck is a Liveblocks room holding one
 Yjs doc, addressed by URL (bare URL = empty editor frame with the deck-select modal forced
 open — `src/edit/DeckSelect.tsx`, also opened from the chevron next to the deck title —
-backed by `GET /_fable/decks` in dev / `GET /api/decks` hosted, via `listDecks`). `content/` +
-`deck.yml` are an optional import/export format (push/pull, first-run seed, MCP default
-room) — the app itself never reads them. The doc layout (see `src/collab/doc.ts`):
+backed by `GET /_fable/decks` in dev / `GET /api/decks` hosted, via `listDecks`).
+`content/` + `deck.yml` are an optional import/export format (push/pull, first-run seed, MCP
+default room) — the app itself never reads them. The doc layout (see `src/collab/doc.ts`):
 
 ```
 meta:      Y.Map                  { title?, config?, v: 1 }
@@ -169,8 +169,8 @@ Returns `[react(), fablePlugin, tailwindcss()]`. The `fablePlugin`:
   auth is available — `LIVEBLOCKS_SECRET_KEY` (dev → `/_fable/liveblocks-auth`) or
   `VITE_FABLE_API_URL` (+ optional `VITE_FABLE_API_TOKEN`). The URL picks the deck
   (`?deck=<id>` or first path segment, see `deckIdFromUrl` in App.tsx); the bare URL shows
-  the deck-select modal. New room ids are auto-created on first auth. The entry embeds no deck content
-  — the app is a pure room client.
+  the deck-select modal. New room ids are auto-created on first auth. The entry embeds no
+  deck content — the app is a pure room client.
 - Dev middleware: `POST /_fable/liveblocks-auth` (access-token auth via
   `src/node/collab.ts`; identity = OS username, override with `FABLE_USER`). On dev start it
   auto-seeds an empty room from `content/`.
@@ -245,10 +245,8 @@ you expect.
 
 ### Styles
 
-Source CSS lives at `styles/src/index.css` (plus `lib/highlight.css` and `lib/pdf.css`).
-Fonts (Inter + Inter Display) ship in the package with `@font-face` and CSS variables
-(`--fable-font-sans`, `--fable-font-display`) so consumers can swap fonts with a small CSS
-override.
+Source CSS lives at `styles/src/index.css`. (`--fable-font-sans`, `--fable-font-display`) so
+consumers can swap fonts with a small CSS override.
 
 ### Package exports & bin
 

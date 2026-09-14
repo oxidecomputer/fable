@@ -1,5 +1,4 @@
 import { useValue } from '@tldraw/state-react'
-import hljs from 'highlight.js'
 import { marked } from 'marked'
 import {
   createContext,
@@ -13,6 +12,7 @@ import {
 import type { CSSProperties, ComponentProps, ReactNode } from 'react'
 
 import { FILE_REF_PREFIX, FilesContext, useImageSrc } from '../files'
+import { highlightCode } from './highlight'
 import { $imageDragActive, droppedImage } from './image-drag'
 
 /**
@@ -183,17 +183,27 @@ function RenderedMarkdown({
     })
   }, [content, files])
 
+  // Highlight fenced code blocks in place: shiki tokenizes the block's plain
+  // text (async — the grammar loads on first use) and its inline spans replace
+  // the escaped source. React re-sets the wrapper's innerHTML whenever `html`
+  // changes, so stale highlights never survive an edit.
   useEffect(() => {
-    if (!wrapper || !wrapper.current) return
-
-    const elements = wrapper.current.querySelectorAll('pre code')
-
-    if (elements) {
-      elements.forEach((el) => {
-        hljs.highlightElement(el as HTMLElement)
-      })
+    if (!wrapper.current) return
+    let cancelled = false
+    wrapper.current.querySelectorAll('pre code').forEach((el) => {
+      const lang = /language-([\w-]+)/.exec(el.className)?.[1] ?? 'text'
+      const code = (el.textContent ?? '').replace(/\n$/, '')
+      highlightCode(code, lang).then(
+        (tokens) => {
+          if (!cancelled) el.innerHTML = tokens
+        },
+        (err) => console.error('Highlighting failed', err),
+      )
+    })
+    return () => {
+      cancelled = true
     }
-  }, [content])
+  }, [html])
 
   return (
     <div

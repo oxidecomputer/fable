@@ -24,7 +24,13 @@ export const Template = ({ data }: { data: Schema }) => {
       <ShaderBackground />
       <Silkscreen opacity={0.25} />
       <HeaderBand />
-      <DeckText style="display-md" row={4} anchor="top" className="oxcon-quote text-raise">
+      <DeckText
+        style="display-md"
+        autofit={{ lines: 5 }}
+        row={4}
+        anchor="top"
+        className="oxcon-quote text-raise"
+      >
         <Markdown content={text} field="text" />
       </DeckText>
       {(name || role) && (

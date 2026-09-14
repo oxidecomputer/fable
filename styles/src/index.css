@@ -13,8 +13,11 @@
 @import '@oxide/design-system/styles/preflight.css' layer(base);
 @import '@oxide/design-system/styles/main.css';
 @import '@oxide/design-system/styles/dark.css';
+/* Scoped under [data-theme='light'] — light-tone slides set that attribute
+ * (see oxcon26 Slide) so semantic tokens, notably the --syntax-* vars the
+ * shiki theme consumes, resolve to their light values inside the slide. */
+@import '@oxide/design-system/styles/light.css';
 
-@import './lib/highlight.css';
 @import './lib/pdf.css';
 
 @custom-variant children (& > *);

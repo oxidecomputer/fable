@@ -142,14 +142,86 @@
   margin-block-end: 45px;
 }
 
-/* Markdown bullet lists (TitleText): preflight strips markers, restore them;
+/* Headings: scaled relative to the surrounding ramp class (em) rather than
+ * fixed sizes, so a `#` inside any field steps up from that field's body
+ * size instead of fighting the template's layout. Color matches strong. */
+.markdown :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--color-neutral-1200);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.markdown h1 {
+  font-size: 1.6em;
+}
+.markdown h2 {
+  font-size: 1.35em;
+}
+.markdown h3 {
+  font-size: 1.15em;
+}
+/* Extra breathing room above a heading that follows other content; the
+ * direct-child spacing rules already handle the gap below. */
+.markdown > :is(h1, h2, h3, h4, h5, h6):not(:first-child) {
+  margin-block-start: 0.5em;
+}
+.oxcon-light .markdown :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--color-neutral-50);
+}
+
+/* Markdown lists (TitleText): preflight strips markers, restore them;
  * nested lists indent a step. */
 .markdown ul {
   list-style: disc;
   padding-inline-start: 0.85em;
 }
-.markdown ul ul {
+.markdown ol {
+  list-style: decimal;
+  padding-inline-start: 1.1em;
+}
+.markdown :is(ul, ol) :is(ul, ol) {
   padding-inline-start: 1.2em;
+}
+.markdown ul ul {
+  list-style: circle;
+}
+
+/* Inline code and code blocks: GT Mono against the slide's Suisse body.
+ * Sized in em so they hold up across the ramp; the tint is currentColor-based
+ * so both tones work without overrides. Block token colors come from the
+ * shiki Oxide theme (design-system --syntax-* vars). */
+.markdown code {
+  font-family: 'GT America Mono', monospace;
+  font-size: 0.85em;
+  letter-spacing: 0;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  padding: 0.08em 0.3em;
+}
+.markdown pre {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  padding: 0.6em 0.8em;
+  overflow: hidden;
+}
+.markdown pre code {
+  display: block;
+  background: none;
+  padding: 0;
+}
+
+/* Links: quiet underline, matching the site's treatment. */
+.markdown a {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+}
+
+/* Blockquotes hang off a tone-aware hairline; hr is the same hairline. */
+.markdown blockquote {
+  border-inline-start: 2px solid var(--deck-hairline);
+  padding-inline-start: 0.6em;
+}
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--deck-hairline);
 }
 
 /* Dark slides: **strong** raises to near-white at the body weight (the

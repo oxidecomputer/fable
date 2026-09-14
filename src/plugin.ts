@@ -295,7 +295,9 @@ export default function fable(options: FableOptions = {}): PluginOption {
         // constructors, including when MCP loads files outside node_modules.
         resolve: { dedupe: ['react', 'react-dom', 'zod'] },
         optimizeDeps: {
-          include: ['mousetrap', 'highlight.js', 'react', 'react-dom/client'],
+          // shiki is deliberately NOT prebundled: esbuild inlines its lazy
+          // grammar/wasm chunks into .vite/deps where the wasm import 404s.
+          include: ['mousetrap', 'react', 'react-dom/client'],
         },
         server: {
           fs: { allow: [packageRoot, userRoot] },

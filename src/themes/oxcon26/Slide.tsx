@@ -15,7 +15,10 @@ export const toneVariant = z
 /**
  * The slide shell: fills the stage, clips overflow, and sets the tone —
  * 'dark' is the theme's near-black; 'light' applies .oxcon-light
- * (neutral-100 surface, grey body text, medium near-black strong).
+ * (neutral-100 surface, grey body text, medium near-black strong) plus
+ * data-theme="light", so the design system's semantic tokens — including
+ * the --syntax-* vars shiki-highlighted code resolves — flip to their
+ * light values inside the slide.
  */
 export function Slide({
   tone = 'dark',
@@ -28,6 +31,7 @@ export function Slide({
 }) {
   return (
     <div
+      data-theme={tone === 'light' ? 'light' : undefined}
       className={`relative h-full w-full overflow-hidden ${
         tone === 'light' ? 'oxcon-light' : 'bg-default'
       } ${className}`}
