@@ -153,6 +153,45 @@ describe('EditShell (collab)', () => {
     expect(bridge.getPageText(id)!.toString()).toContain('url: Url')
   })
 
+  it('switching templates drops untouched placeholders but keeps edited content', () => {
+    const select = container.querySelector('select') as HTMLSelectElement
+    act(() => {
+      select.value = 'Linked'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    const id = $currentPageId.get()!
+    // `text` is authored content Linked doesn't know — kept, not dropped
+    expect($pagesById.get()[id].text).toBe('body one')
+    expect($pagesById.get()[id].url).toBe('Url')
+
+    act(() => {
+      select.value = 'Text'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    // The untouched `url` placeholder isn't part of Text — dropped on switch
+    expect($pagesById.get()[id].url).toBeUndefined()
+    expect(bridge.getPageText(id)!.toString()).not.toContain('url')
+    expect($pagesById.get()[id].text).toBe('body one')
+  })
+
+  it('shows a soft unused-fields notice with one-click removal', () => {
+    const select = container.querySelector('select') as HTMLSelectElement
+    act(() => {
+      select.value = 'Linked'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    // `text` survived the switch (edited content) and Linked doesn't use it
+    expect(container.textContent).toContain('Unused field')
+    expect(container.textContent).toContain('text')
+    // ...but it isn't presented as a schema error over the stage
+    expect(container.textContent).not.toContain('schema issue')
+
+    clickText('Remove')
+    const id = $currentPageId.get()!
+    expect($pagesById.get()[id].text).toBeUndefined()
+    expect(container.textContent).not.toContain('Unused field')
+  })
+
   it('shows a variant dropdown only for templates with a variant enum', () => {
     // Text has no variant field — just the template select
     expect(container.querySelectorAll('select')).toHaveLength(1)

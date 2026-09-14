@@ -69,7 +69,7 @@ flowed text keeps the vertical rhythm; put the class on the text block (or direc
 | -------------------- | ----------- | ----- | ----------- | -------- | ---------------- |
 | `deck-mono-sm`       | GT Mono     | 20px  | ½ cell      | +4%      | uppercase        |
 | `deck-mono-md`       | GT Mono     | 30px  | 1 cell      | +4%      | uppercase        |
-| `deck-text-xs`       | Suisse Intl | 20px  | ½ cell      | −1.5%    |                  |
+| `deck-text-xs`       | Suisse Intl | 20px  | ½ cell      | −0.5%    |                  |
 | `deck-text-sm`       | Suisse Intl | 28px  | ⅔ cell      | −1.5%    | ¶ spacing ½ cell |
 | `deck-text-md`       | Suisse Intl | 40px  | 1 cell      | −1.5%    | ¶ spacing ½ cell |
 | `deck-text-lg`       | Suisse Intl | 54px  | 1⅓ cells    | −2%      | ¶ spacing ½ cell |

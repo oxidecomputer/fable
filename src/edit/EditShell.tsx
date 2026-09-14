@@ -125,7 +125,12 @@ export default function EditShell({ children, presence = true }: Props) {
     errors?.filter(
       (e) => e.code === 'invalid_type' && e.received === 'undefined' && e.path.length === 1,
     ) ?? []
-  const otherErrors = errors?.filter((e) => !missing.includes(e)) ?? []
+  // Extra fields the template doesn't know are harmless leftovers (usually
+  // from a template switch), not mistakes — soft notice with a one-click drop.
+  const unusedFields =
+    errors?.flatMap((e) => (e.code === 'unrecognized_keys' ? e.keys : [])) ?? []
+  const otherErrors =
+    errors?.filter((e) => !missing.includes(e) && e.code !== 'unrecognized_keys') ?? []
   const variants = variantOptions(template?.Schema)
 
   return (
@@ -224,6 +229,26 @@ export default function EditShell({ children, presence = true }: Props) {
                   Insert placeholders
                 </Button>
               </NoticeBox>
+            )}
+            {unusedFields.length > 0 && (
+              <div className="mt-2 rounded border border-default px-2 py-1.5 text-sans-sm text-secondary">
+                <div className="mb-1.5">
+                  Unused {unusedFields.length === 1 ? 'field' : 'fields'}:{' '}
+                  <code className="inline-code">{unusedFields.join(', ')}</code> — not part
+                  of <code className="inline-code">{page.template}</code>
+                </div>
+                <Button
+                  onClick={() =>
+                    updatePage(
+                      index,
+                      // '' deletes the key in mergePatch
+                      Object.fromEntries(unusedFields.map((k) => [k, ''])),
+                    )
+                  }
+                >
+                  Remove
+                </Button>
+              </div>
             )}
           </div>
         )}

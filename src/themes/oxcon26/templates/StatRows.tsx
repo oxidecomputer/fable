@@ -35,6 +35,7 @@ export const Template = ({ data }: { data: Schema }) => {
             style="text-md"
             col={9}
             row={3 + (i + 1) * band - 1}
+            anchor="baseline"
             className="deck-muted"
           >
             <Markdown content={row.label} field="rows.label" fieldIndex={i} />

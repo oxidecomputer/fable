@@ -1,5 +1,8 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
 
@@ -12,12 +15,13 @@ const api = vi.hoisted(() => ({
   getYjsDocumentAsBinaryUpdate: vi.fn(),
   sendYjsBinaryUpdate: vi.fn(),
   fetchDocTemplateSources: vi.fn(),
+  uploadRoomFile: vi.fn(),
 }))
 vi.mock('./collab', () => ({
   createLiveblocks: () => api,
   ensureRoom: vi.fn(),
   fetchDocTemplateSources: api.fetchDocTemplateSources,
-  uploadRoomFile: vi.fn(),
+  uploadRoomFile: api.uploadRoomFile,
 }))
 vi.mock('./doc-template-scan', () => ({ syncDocTemplateScratch: vi.fn() }))
 
@@ -135,5 +139,55 @@ describe('MCP template contract', () => {
     const result = await call('create_template', { name: 'Custom', source })
     expect(result.error).toBeFalsy()
     expect(readTemplateSources(room).Custom).toBe(source)
+  })
+})
+
+describe('upload_file', () => {
+  beforeEach(() => {
+    api.uploadRoomFile.mockImplementation(
+      async (_lb, _room, bytes: Uint8Array, name: string, mimeType: string) => ({
+        id: 'fl_test',
+        name,
+        size: bytes.byteLength,
+        mimeType,
+      }),
+    )
+  })
+
+  it('uploads a local file by path, inferring name and mime type', async () => {
+    const file = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'fable-')), 'pic.png')
+    await fs.writeFile(file, Buffer.from([1, 2, 3]))
+    const result = await call('upload_file', { path: file })
+    expect(result.error).toBeFalsy()
+    expect(result.text).toContain('fable:fl_test')
+    expect(api.uploadRoomFile).toHaveBeenCalledWith(
+      api,
+      'test-deck',
+      expect.anything(),
+      'pic.png',
+      'image/png',
+    )
+  })
+
+  it('reports unreadable paths as tool errors', async () => {
+    const result = await call('upload_file', { path: '/nope/missing.png' })
+    expect(result.error).toBe(true)
+    expect(result.text).toContain('Could not read')
+  })
+
+  it('still accepts inline base64 with a filename', async () => {
+    const result = await call('upload_file', {
+      filename: 'dot.gif',
+      base64: Buffer.from([1]).toString('base64'),
+    })
+    expect(result.error).toBeFalsy()
+    expect(result.text).toContain('fable:fl_test')
+  })
+
+  it('requires exactly one of path, url, or base64', async () => {
+    expect((await call('upload_file', {})).error).toBe(true)
+    const both = await call('upload_file', { path: '/a.png', base64: 'aGk=' })
+    expect(both.error).toBe(true)
+    expect(both.text).toContain('exactly one')
   })
 })

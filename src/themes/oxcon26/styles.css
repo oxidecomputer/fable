@@ -57,10 +57,19 @@
   font-weight: 400;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-wrap: pretty;
+}
+
 .deck-text-xs {
   font-size: 20px;
   line-height: calc(var(--grid-cell-h) / 2);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.005em;
 }
 
 .deck-text-sm {

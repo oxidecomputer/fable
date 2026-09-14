@@ -1,7 +1,7 @@
 import { atom, computed } from '@tldraw/state'
 
 import { parsePage, serializePage } from '../content/markdown'
-import { missingFieldPlaceholders } from '../content/placeholders'
+import { missingFieldPlaceholders, stalePlaceholderFields } from '../content/placeholders'
 import type { DeckContent, DeckMeta, PageData, TemplateMap } from '../model'
 
 export { mergePatch, nextPageFilename } from '../collab/ops'
@@ -235,7 +235,18 @@ export function switchTemplate(index: number, newTemplate: string) {
   if (id === undefined) return
   // Populate the source with placeholders for the new template's required
   // fields, so the switched slide renders and the fields are visible to edit.
+  // Leftover fields the new template doesn't use are dropped when their value
+  // is still the old template's untouched placeholder; edited content stays
+  // (surfacing as an "unused fields" notice instead).
   const page = $pagesById.get()[id] ?? { template: newTemplate }
+  const oldSchema = $templates.get()[page.template]?.Schema
   const schema = $templates.get()[newTemplate]?.Schema
-  backend.switchTemplate(id, newTemplate, missingFieldPlaceholders(schema, page))
+  const patch: Partial<PageData> = {
+    ...missingFieldPlaceholders(schema, page),
+    // '' deletes the key in mergePatch
+    ...Object.fromEntries(
+      stalePlaceholderFields(oldSchema, schema, page).map((k) => [k, '']),
+    ),
+  }
+  backend.switchTemplate(id, newTemplate, patch)
 }

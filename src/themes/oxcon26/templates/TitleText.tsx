@@ -1,4 +1,4 @@
-import { DeckText, HeaderBand, Markdown, Slide, toneVariant } from '@oxide/fable'
+import { DeckText, HeaderBand, Markdown, Slide, colsW, toneVariant } from '@oxide/fable'
 import { z } from 'zod'
 
 export const Schema = z.object({
@@ -13,10 +13,17 @@ export const Template = ({ data }: { data: Schema }) => {
   return (
     <Slide tone={data.variant ?? 'light'}>
       <HeaderBand />
-      <DeckText style="display-md" row={2} anchor="top" className="deck-strong" as="h1">
+      <DeckText
+        style="display-sm"
+        row={4}
+        autofit={{ lines: 1 }}
+        className="deck-strong"
+        as="h1"
+        width={colsW(11)}
+      >
         <Markdown content={data.title} field="title" />
       </DeckText>
-      <DeckText style="text-md" row={10} anchor="top" className="deck-muted">
+      <DeckText style="text-lg" row={7} className="deck-muted" width={colsW(11)}>
         <Markdown content={data.text} field="text" />
       </DeckText>
     </Slide>

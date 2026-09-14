@@ -3,6 +3,7 @@ import {
   Markdown,
   ShaderBackground,
   Slide,
+  colsW,
   gridX,
   gridY,
   oxconAssets,
@@ -48,6 +49,8 @@ export const Template = ({ data }: { data: Schema }) => {
         row={19}
         anchor="baseline"
         className="deck-accent"
+        width={colsW(9)}
+        autofit={{ lines: 2 }}
         as="h1"
       >
         <Markdown content={data.title} field="title" />

@@ -7,6 +7,8 @@ import * as Cover from './templates/Cover'
 import CoverSource from './templates/Cover.tsx?raw'
 import * as Divider from './templates/Divider'
 import DividerSource from './templates/Divider.tsx?raw'
+import * as Embed from './templates/Embed'
+import EmbedSource from './templates/Embed.tsx?raw'
 import * as FullImage from './templates/FullImage'
 import FullImageSource from './templates/FullImage.tsx?raw'
 import * as Quote from './templates/Quote'
@@ -63,6 +65,12 @@ takeaway reads at a glance.
 
 A blank line starts a new paragraph; a single newline
 renders as a line break.
+`
+
+const EMBED_EXAMPLE = `---
+template: Embed
+url: https://oxide.computer
+---
 `
 
 const QUOTE_EXAMPLE = `---
@@ -185,6 +193,12 @@ export const oxcon26Theme: Theme = {
       DIVIDER_EXAMPLE,
       'Section divider: a big green title over the shader. Title only — no body copy.',
     ),
+    Embed: withSource(
+      Embed,
+      EmbedSource,
+      EMBED_EXAMPLE,
+      'Full-page embedded web page (live iframe) from a URL; window: true frames it in a faux browser window. For a static picture use FullImage.',
+    ),
     FullImage: withSource(
       FullImage,
       FullImageSource,
@@ -254,6 +268,7 @@ Template idioms:
 - "StatRows" for stacked stat rows: a rows array of { stat, label } pairs, hairline separators between bands; bold the label lead ("**Unified interface:** everything…").
 - "StatPie" for a big accent stat and supporting text left, a pie (percent field, 0–100) flush right with legend entries (legend array, bold lead) on hairlines below. Defaults dark.
 - "FullImage" for a full-bleed image with an optional caption bottom-left. variant picks the overlay text color (dark = light text, the default).
+- "Embed" for a full-page embedded web page from a url — live demos, dashboards, interactive content. window: true frames it in a faux browser window on the grid instead of full-bleed. For a static picture use FullImage.
 - Every new-style template takes variant: light | dark (TitleText/TextImage/TitleColumns/Stat/StatRows default light; StatPie/FullImage default dark).
 - Line breaks in any text field: a newline renders as a line break (<br> also works); a blank line starts a new paragraph (paragraph spacing comes from the deck-text-* classes).
 

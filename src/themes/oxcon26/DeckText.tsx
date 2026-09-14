@@ -99,8 +99,8 @@ export function DeckText({
     budget.height !== undefined
       ? budget.height * grid.cellH
       : anchor === 'baseline'
-        ? gridY(grid, { row }) - grid.rowOffset
-        : grid.rowOffset + grid.rows * grid.cellH - gridY(grid, { row })
+      ? gridY(grid, { row }) - grid.rowOffset
+      : grid.rowOffset + grid.rows * grid.cellH - gridY(grid, { row })
   const maxLines = budget.lines
 
   // Converges before paint: layout-effect state updates flush synchronously,

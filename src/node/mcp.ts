@@ -66,8 +66,9 @@ surface as schema errors.
 
 Image fields accept a URL, a path under the deck's public/ directory
 (e.g. /diagram.png), or a room-stored file ref (fable:<fileId> — upload with
-upload_file). Room-stored files travel with the deck and need no local
-directory, so prefer upload_file over add_asset.`
+upload_file from a local path, a URL, or inline base64). Room-stored files
+travel with the deck and need no local directory, so prefer upload_file over
+add_asset.`
 
 export type McpServerOptions = {
   secret: string
@@ -268,12 +269,16 @@ export async function createMcpServer({
     const data = parsePage(source)
     const template = registry.templates[data.template]
     const warnings = template
-      ? validatePageFields(template, data).map(
-          (issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`,
+      ? validatePageFields(template, data).map((issue) =>
+          issue.code === 'unrecognized_keys'
+            ? `unused field(s) not part of "${data.template}": ${issue.keys.join(
+                ', ',
+              )} — remove them unless the content should be kept`
+            : `${issue.path.join('.') || '(root)'}: ${issue.message}`,
         )
       : [registry.errors[data.template] ?? `Unknown template "${data.template}"`]
     if (warnings.length === 0) return message
-    return `${message}\n\nSchema warnings (slide still saved; shown as errors in the editor):\n- ${warnings.join(
+    return `${message}\n\nSchema warnings (slide still saved; surfaced in the editor):\n- ${warnings.join(
       '\n- ',
     )}`
   }
@@ -599,23 +604,59 @@ ${deckTheme.aiInstructions ?? 'none'}`,
 
   server.tool(
     'upload_file',
-    "Upload an image (or other asset) into the deck's room storage. Returns a fable:<fileId> ref to use as an image field value or inline as ![alt](fable:<fileId>). Files live with the deck — preferred over add_asset.",
+    "Upload an image (or other asset) into the deck's room storage from a local file, a URL, or inline base64. Returns a fable:<fileId> ref to use as an image field value or inline as ![alt](fable:<fileId>). Files live with the deck — preferred over add_asset.",
     {
-      filename: z.string().describe('Original filename, e.g. diagram.png'),
-      base64: z.string().describe('File contents, base64-encoded'),
+      path: z
+        .string()
+        .optional()
+        .describe('Local file to upload (absolute, or relative to the deck directory)'),
+      url: z.string().optional().describe('http(s) URL to fetch and upload'),
+      base64: z
+        .string()
+        .optional()
+        .describe('Inline file contents, base64-encoded (small files only)'),
+      filename: z
+        .string()
+        .optional()
+        .describe('Stored filename; defaults to the path/url basename'),
       mimeType: z
         .string()
         .optional()
         .describe('MIME type; inferred from the filename extension when omitted'),
       deck: DECK_ARG,
     },
-    async ({ filename, base64, mimeType, deck }) =>
+    async ({ path: filePath, url, base64, filename, mimeType, deck }) =>
       run(async () => {
         const deckId = resolveDeck(deck)
-        const buf = Buffer.from(base64, 'base64')
+        if ([filePath, url, base64].filter((s) => s !== undefined).length !== 1) {
+          return errorText('Provide exactly one of path, url, or base64')
+        }
+        let buf: Buffer
+        let fetchedType: string | undefined
+        if (filePath !== undefined) {
+          try {
+            buf = await fs.readFile(path.resolve(userRoot, filePath))
+          } catch (e) {
+            return errorText(`Could not read ${filePath}: ${(e as Error).message}`)
+          }
+        } else if (url !== undefined) {
+          if (!/^https?:\/\//.test(url)) return errorText('url must be http(s)')
+          const res = await fetch(url).catch((e: Error) => e)
+          if (res instanceof Error)
+            return errorText(`Fetching ${url} failed: ${res.message}`)
+          if (!res.ok) return errorText(`Fetching ${url} failed: ${res.status}`)
+          buf = Buffer.from(await res.arrayBuffer())
+          fetchedType = res.headers.get('content-type')?.split(';')[0].trim() || undefined
+        } else {
+          if (filename === undefined) return errorText('filename is required with base64')
+          buf = Buffer.from(base64!, 'base64')
+        }
         if (buf.byteLength === 0) return errorText('Empty file')
         if (buf.byteLength > 50 * 1024 * 1024) return errorText('File exceeds 50 MB')
-        const name = path.basename(filename)
+        const name =
+          path.basename(
+            filename ?? filePath ?? decodeURIComponent(new URL(url!).pathname),
+          ) || 'file'
         const type =
           mimeType ??
           {
@@ -628,6 +669,7 @@ ${deckTheme.aiInstructions ?? 'none'}`,
             avif: 'image/avif',
             mp4: 'video/mp4',
           }[name.split('.').pop()?.toLowerCase() ?? ''] ??
+          fetchedType ??
           'application/octet-stream'
         await ensureRoom(liveblocks, deckId)
         const info = await uploadRoomFile(liveblocks, deckId, buf, name, type)

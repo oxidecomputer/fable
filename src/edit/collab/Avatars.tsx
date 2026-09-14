@@ -1,12 +1,5 @@
 import { useOthers, useSelf } from '@liveblocks/react'
 
-import { $currentPageId, $pageIds } from '../store'
-
-/** Jump to the slide a collaborator is on (if it still exists). */
-function goToPage(pageId: string | null) {
-  if (pageId && $pageIds.get().includes(pageId)) $currentPageId.set(pageId)
-}
-
 function initials(name: string): string {
   return name
     .split(/\s+/)
@@ -31,13 +24,13 @@ export function Avatar({
   return (
     <div
       title={name}
-      className="rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-default"
+      className="rounded-full flex items-center justify-center shrink-0 overflow-hidden border-[1.5px] border-default"
       style={{ width: size, height: size, backgroundColor: color, fontSize: size * 0.38 }}
     >
       {avatar ? (
         <img src={avatar} alt={name} className="w-full h-full object-cover" />
       ) : (
-        <span className="text-[#080F11] font-semibold">{initials(name)}</span>
+        <span className="text-inverse">{initials(name)}</span>
       )}
     </div>
   )
@@ -60,27 +53,6 @@ export default function Avatars() {
 
   return (
     <div className="flex items-center -space-x-2">
-      {users.slice(0, 5).map((other) => {
-        const name = other.info?.name ?? 'Anonymous'
-        const pageId = other.presence.pageId
-        return (
-          <button
-            key={other.id ?? other.connectionId}
-            type="button"
-            onClick={() => goToPage(pageId)}
-            disabled={!pageId}
-            title={pageId ? `${name} — jump to their slide` : name}
-            className="rounded-full enabled:cursor-pointer"
-          >
-            <Avatar
-              size={28}
-              name={name}
-              color={other.info?.color ?? '#9DAFFA'}
-              avatar={other.info?.avatar}
-            />
-          </button>
-        )
-      })}
       {users.length > 5 && (
         <div className="rounded-full w-7 h-7 flex items-center justify-center bg-default border border-default text-mono-xs text-quaternary">
           +{users.length - 5}
@@ -108,7 +80,7 @@ export function PagePresenceDots({ pageId }: { pageId: string }) {
         <div
           key={o.connectionId}
           title={o.info?.name ?? 'Anonymous'}
-          className="w-2.5 h-2.5 rounded-full border border-[#080F11]"
+          className="w-2.5 h-2.5 rounded-full border border-tertiary"
           style={{ backgroundColor: o.info?.color ?? '#9DAFFA' }}
         />
       ))}
