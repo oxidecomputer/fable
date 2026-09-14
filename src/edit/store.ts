@@ -1,17 +1,12 @@
 import { atom, computed } from '@tldraw/state'
-import { z } from 'zod'
 
-import type { TemplateMap } from '../Page'
-import { nextPageFilename } from '../collab/ops'
+import { parsePage, serializePage } from '../content/markdown'
+import { missingFieldPlaceholders } from '../content/placeholders'
+import type { DeckContent, DeckMeta, PageData, TemplateMap } from '../model'
 
-export { nextPageFilename }
-
-export type PageData = Record<string, any> & { template: string }
-export type DeckMeta = {
-  title?: string
-  config?: { page_numbers?: boolean }
-}
-export type Content = DeckMeta & { pages: PageData[] }
+export { mergePatch, nextPageFilename } from '../collab/ops'
+export { unwrapEffects } from '../templates/validation'
+export type { DeckContent as Content, DeckMeta, PageData } from '../model'
 
 // Core state, keyed by stable page ids (nanoid, minted when a page enters
 // the Yjs doc). The room bridge populates these; they are a derived read
@@ -48,6 +43,38 @@ function loadInspectorWidth(): number {
 
 export const $inspectorWidth = atom<number>('inspectorWidth', loadInspectorWidth())
 
+// Edit-only view settings (stage overlays etc.) — local to this client,
+// persisted across sessions. Present/preview surfaces never read these.
+export type ViewSettings = {
+  /** Show the theme's grid overlay on the edit stage (toggled with "g"). */
+  grid: boolean
+}
+
+const VIEW_SETTINGS_KEY = 'fable:view-settings'
+const defaultViewSettings: ViewSettings = { grid: false }
+
+function loadViewSettings(): ViewSettings {
+  if (typeof localStorage === 'undefined') return defaultViewSettings
+  try {
+    const raw = localStorage.getItem(VIEW_SETTINGS_KEY)
+    return raw ? { ...defaultViewSettings, ...JSON.parse(raw) } : defaultViewSettings
+  } catch {
+    return defaultViewSettings
+  }
+}
+
+export const $viewSettings = atom<ViewSettings>('viewSettings', loadViewSettings())
+
+export function toggleViewSetting(key: keyof ViewSettings) {
+  const next = { ...$viewSettings.get(), [key]: !$viewSettings.get()[key] }
+  $viewSettings.set(next)
+  try {
+    localStorage.setItem(VIEW_SETTINGS_KEY, JSON.stringify(next))
+  } catch {
+    /* ignore */
+  }
+}
+
 export function setInspectorWidth(width: number) {
   const next = clampInspectorWidth(width)
   $inspectorWidth.set(next)
@@ -61,7 +88,7 @@ export const $templates = atom<TemplateMap>('templates', {})
 export const $dragIndex = atom<number | null>('dragIndex', null)
 export const $overIndex = atom<number | null>('overIndex', null)
 
-export const $deck = computed<Content>('deck', () => {
+export const $deck = computed<DeckContent>('deck', () => {
   const byId = $pagesById.get()
   const pages = $pageIds
     .get()
@@ -116,20 +143,11 @@ export function applyPageFromUrl(): void {
 export type Backend = {
   updatePage(id: string, patch: Partial<PageData>): void
   setPage(id: string, next: PageData): void
-  addPage(templateName: string): void
+  addPage(page: PageData, index?: number): void
   removePage(id: string): void
   movePage(from: number, to: number): void
   setTitle(title: string): void
-  switchTemplate(id: string, template: string): void
-}
-
-/** Merge a patch into a page, deleting keys set to '' (except template). */
-export function mergePatch(current: PageData, patch: Partial<PageData>): PageData {
-  const merged: PageData = { ...current, ...patch }
-  for (const k of Object.keys(merged)) {
-    if (merged[k] === '' && k !== 'template') delete merged[k]
-  }
-  return merged
+  switchTemplate(id: string, template: string, patch?: Partial<PageData>): void
 }
 
 /** Inert backend used before the room connects. */
@@ -162,7 +180,40 @@ export function setPage(index: number, next: PageData) {
 }
 
 export function addPage(templateName: string) {
-  backend.addPage(templateName)
+  // Populate required fields with placeholders so the new slide renders
+  // immediately instead of showing schema errors, and insert it right after
+  // the slide the user is on.
+  const schema = $templates.get()[templateName]?.Schema
+  const page: PageData = {
+    template: templateName,
+    ...missingFieldPlaceholders(schema, {}),
+  }
+  backend.addPage(page, $currentIndex.get() + 1)
+}
+
+// In-app clipboard for page copy/paste in the sidebar. Stored as serialized
+// page source so a paste is a full, independent copy.
+let copiedPageSource: string | null = null
+
+export function copyPage(index: number) {
+  const id = pageIdAt(index)
+  const page = id === undefined ? undefined : $pagesById.get()[id]
+  if (!page) return
+  copiedPageSource = serializePage(page)
+  // Best-effort mirror to the system clipboard (readable as markdown).
+  if (typeof navigator !== 'undefined') {
+    navigator.clipboard?.writeText(copiedPageSource).catch(() => {})
+  }
+}
+
+/** Paste the copied page directly after `index`. No-op if nothing was copied. */
+export function pastePage(index: number) {
+  if (copiedPageSource === null) return
+  try {
+    backend.addPage(parsePage(copiedPageSource), index + 1)
+  } catch {
+    /* stale/unparseable clipboard — ignore */
+  }
 }
 
 export function removePage(index: number) {
@@ -181,12 +232,10 @@ export function setTitle(title: string) {
 
 export function switchTemplate(index: number, newTemplate: string) {
   const id = pageIdAt(index)
-  if (id !== undefined) backend.switchTemplate(id, newTemplate)
-}
-
-export function unwrapEffects(schema: z.ZodTypeAny | undefined): z.ZodTypeAny | undefined {
-  if (!schema) return undefined
-  let s: any = schema
-  while (s?._def?.typeName === 'ZodEffects') s = s._def.schema
-  return s
+  if (id === undefined) return
+  // Populate the source with placeholders for the new template's required
+  // fields, so the switched slide renders and the fields are visible to edit.
+  const page = $pagesById.get()[id] ?? { template: newTemplate }
+  const schema = $templates.get()[newTemplate]?.Schema
+  backend.switchTemplate(id, newTemplate, missingFieldPlaceholders(schema, page))
 }

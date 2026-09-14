@@ -6,8 +6,10 @@ import {
   createLiveblocks,
   ensureRoom,
   exportRoomSources,
+  getRoomFileUrl,
   listDecks,
   seedRoom,
+  uploadRoomFile,
 } from '@oxide/fable/node'
 import { Hono } from 'hono'
 
@@ -31,7 +33,9 @@ export function createFableServer(options: FableServerOptions): Hono {
 
   app.use('*', async (c, next) => {
     const header = c.req.header('authorization') ?? ''
-    const token = header.replace(/^Bearer\s+/i, '')
+    // A `token` query is accepted too — file GETs are loaded via <img src>,
+    // which can't send headers.
+    const token = header.replace(/^Bearer\s+/i, '') || (c.req.query('token') ?? '')
     if (!options.authToken || token !== options.authToken) {
       return c.json({ error: 'Unauthorized' }, 401)
     }
@@ -91,6 +95,37 @@ export function createFableServer(options: FableServerOptions): Hono {
       throw err
     }
     return c.json({ ok: true })
+  })
+
+  // Room-stored files (slide images): raw bytes in, presigned-URL redirect
+  // out. Page sources reference them as `fable:<fileId>`.
+  app.post('/api/files/:roomId', async (c) => {
+    const bytes = new Uint8Array(await c.req.arrayBuffer())
+    if (bytes.byteLength === 0) return c.json({ error: 'Empty file' }, 400)
+    if (bytes.byteLength > 50 * 1024 * 1024) {
+      return c.json({ error: 'File exceeds 50 MB' }, 413)
+    }
+    const name = decodeURIComponent(c.req.header('x-fable-filename') ?? 'upload')
+    const mimeType = c.req.header('content-type') ?? 'application/octet-stream'
+    const info = await uploadRoomFile(
+      liveblocks,
+      c.req.param('roomId'),
+      bytes,
+      name,
+      mimeType,
+    )
+    return c.json(info)
+  })
+
+  app.get('/api/files/:roomId/:fileId', async (c) => {
+    const url = await getRoomFileUrl(
+      liveblocks,
+      c.req.param('roomId'),
+      c.req.param('fileId'),
+    )
+    // Presigned URLs rotate hourly; let browsers cache the redirect briefly.
+    c.header('cache-control', 'private, max-age=300')
+    return c.redirect(url, 302)
   })
 
   app.get('/api/rooms/:id/export', async (c) => {

@@ -1,12 +1,12 @@
+import { shallow, useOthers, useUpdateMyPresence } from '@liveblocks/react'
 import { useValue } from '@tldraw/state-react'
-import { useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
 import Page from './Page'
-import type { TemplateMap } from './Page'
+import { imageFieldKeys } from './collab/fields'
 import DeckIndex from './edit/DeckIndex'
 import EditShell from './edit/EditShell'
-import StageCursors from './edit/collab/StageCursors'
 import { CollabRoot } from './edit/collab/room'
 import {
   $currentIndex,
@@ -17,25 +17,29 @@ import {
   $mode,
   $pageIds,
   $templates,
+  $viewSettings,
   setCurrentIndex,
+  toggleViewSetting,
   updatePage,
 } from './edit/store'
+import { CenteredNotice, Muted } from './edit/ui'
 import { redo, undo } from './edit/undo'
+import { FilesContext, createFilesClient, useFiles } from './files'
 import { useKey } from './hooks/use-key'
-import oxideTheme from './themes/oxide'
+import type { DeckContent, TemplateMap } from './model'
+import { installImageDragTracking } from './templates/image-drag'
+import { resolveTemplates } from './templates/registry'
+import type { Theme } from './theme'
+import oxcon26Theme from './themes/oxcon26'
 
 export const Schema = z.object({
   pages: z.any().array(),
 })
 
-type Content = {
-  pages: any[]
-  title?: string
-  config?: { page_numbers?: boolean }
-}
-
 type Props = {
   customTemplates?: TemplateMap
+  /** The deck directory's theme (FABLE_THEME, resolved by the plugin). */
+  theme?: Theme
   /**
    * Collab availability (auth + deck-listing endpoints). The directory is
    * the theme; decks live in rooms, picked by URL (?deck=<id> or the first
@@ -44,6 +48,8 @@ type Props = {
   collab?: {
     authEndpoint: string
     decksEndpoint: string
+    /** Room-file endpoints (upload + presigned-URL redirect) for slide images. */
+    filesEndpoint?: string
     apiToken?: string
   }
 }
@@ -64,12 +70,12 @@ function deckIdFromUrl(): string | null {
   return null
 }
 
-export default function App({ customTemplates = {}, collab }: Props) {
+export default function App({ customTemplates = {}, collab, theme = oxcon26Theme }: Props) {
   const mode = useValue($mode)
 
   const templates = useMemo(
-    () => ({ ...oxideTheme.templates, ...customTemplates }),
-    [customTemplates],
+    () => resolveTemplates({ theme: theme.templates, files: customTemplates }).templates,
+    [theme, customTemplates],
   )
 
   const { isPdf, urlPresent } = useMemo(() => {
@@ -87,12 +93,12 @@ export default function App({ customTemplates = {}, collab }: Props) {
 
   if (!collab) {
     return (
-      <div className="fable-editor flex h-full items-center justify-center bg-default">
-        <div className="max-w-[440px] text-mono-xs text-quaternary p-6 border border-default rounded bg-raise">
+      <CenteredNotice>
+        <Muted className="max-w-[440px] p-6 border border-default rounded bg-raise">
           Fable needs a backend: set <code>LIVEBLOCKS_SECRET_KEY</code> for local dev, or
           build with <code>VITE_FABLE_API_URL</code> pointing at a fable server.
-        </div>
-      </div>
+        </Muted>
+      </CenteredNotice>
     )
   }
 
@@ -106,27 +112,70 @@ export default function App({ customTemplates = {}, collab }: Props) {
         apiToken: collab.apiToken,
       }}
       baseTemplates={templates}
+      templateExports={theme.templateExports}
     >
-      {effectiveMode === 'edit' ? <EditView /> : <LivePresentView isPdf={isPdf} />}
+      <RoomFilesProvider
+        roomId={roomId}
+        filesEndpoint={collab.filesEndpoint}
+        apiToken={collab.apiToken}
+      >
+        {effectiveMode === 'edit' ? (
+          <EditView theme={theme} />
+        ) : (
+          <LivePresentView isPdf={isPdf} />
+        )}
+      </RoomFilesProvider>
     </CollabRoot>
   )
+}
+
+/** Room-file resolution/upload for `fable:<fileId>` image refs. */
+function RoomFilesProvider({
+  roomId,
+  filesEndpoint,
+  apiToken,
+  children,
+}: {
+  roomId: string
+  filesEndpoint?: string
+  apiToken?: string
+  children: ReactNode
+}) {
+  const files = useMemo(
+    () => (filesEndpoint ? createFilesClient(filesEndpoint, roomId, apiToken) : null),
+    [filesEndpoint, roomId, apiToken],
+  )
+  return <FilesContext.Provider value={files}>{children}</FilesContext.Provider>
 }
 
 /** Present mode against the live room state instead of the static build. */
 function LivePresentView({ isPdf }: { isPdf: boolean }) {
   const deck = useValue($deck)
   const templates = useValue($templates)
-  return <PresentView content={deck} templates={templates} isPdf={isPdf} />
+  return (
+    <PresentView
+      content={deck}
+      templates={templates}
+      isPdf={isPdf}
+      onExit={(page) => {
+        setCurrentIndex(page)
+        $mode.set('edit')
+      }}
+    />
+  )
 }
 
 function PresentView({
   content,
   templates,
   isPdf,
+  onExit,
 }: {
-  content: Content
+  content: DeckContent
   templates: TemplateMap
   isPdf: boolean
+  /** Leave present mode (fullscreen exited or Escape), landing on `page`. */
+  onExit?: (page: number) => void
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [scale, setScale] = useState(1.0)
@@ -154,17 +203,33 @@ function PresentView({
     document.body.requestFullscreen()
   }
 
+  const exit = () => {
+    if (document.fullscreenElement) {
+      // fullscreenchange handles the mode switch back to edit.
+      document.exitFullscreen()
+    } else {
+      onExit?.(currentPage)
+    }
+  }
+
   useKey('left', prevPage)
   useKey('right', nextPage)
   useKey('up', prevPage)
   useKey('down', nextPage)
   useKey('f', enterFullscreen)
+  useKey('esc', exit)
 
   useEffect(() => {
     function onFullscreenChange() {
-      setIsFullscreen(document.fullscreenElement !== null)
+      const fullscreen = document.fullscreenElement !== null
+      setIsFullscreen(fullscreen)
+      if (!fullscreen) onExit?.(currentPage)
     }
+    addEventListener('fullscreenchange', onFullscreenChange)
+    return () => removeEventListener('fullscreenchange', onFullscreenChange)
+  })
 
+  useEffect(() => {
     function checkScale() {
       const widthScale = window.innerWidth / 1920
       const heightScale = window.innerHeight / 1080
@@ -177,13 +242,8 @@ function PresentView({
       document.body.classList.add('--pdf')
     }
 
-    addEventListener('fullscreenchange', onFullscreenChange)
     addEventListener('resize', checkScale)
-
-    return () => {
-      removeEventListener('fullscreenchange', onFullscreenChange)
-      removeEventListener('resize', checkScale)
-    }
+    return () => removeEventListener('resize', checkScale)
   }, [isPdf])
 
   useEffect(() => {
@@ -211,8 +271,10 @@ function PresentView({
             key={i}
             data={data}
             scale={1}
+            mode="present"
             templates={templates}
             pageNumber={showPageNumbers ? pageNumber(i + 1) : null}
+            pageInfo={{ number: i + 1, total: content.pages.length }}
           />
         ))
       ) : (
@@ -220,21 +282,39 @@ function PresentView({
           key={currentPage}
           data={content.pages[currentPage]}
           scale={scale * (isFullscreen ? 1.0 : 0.9)}
+          mode="present"
           templates={templates}
           pageNumber={showPageNumbers ? pageNumber(currentPage + 1) : null}
+          pageInfo={{ number: currentPage + 1, total: content.pages.length }}
         />
       )}
     </div>
   )
 }
 
-function EditView() {
+function EditView({ theme }: { theme: Theme }) {
   const deck = useValue($deck)
+  const viewSettings = useValue($viewSettings)
   const templates = useValue($templates)
   const currentIndex = useValue($currentIndex)
   const currentPageId = useValue($currentPageId)
   const inspectorWidth = useValue($inspectorWidth)
   const [scale, setScale] = useState(1.0)
+  const files = useFiles()
+  const [uploading, setUploading] = useState(false)
+
+  // Canvas field selection presence: publish ours, collect others' (same
+  // slide only) as fieldKey → user color for the stage to outline.
+  const updateMyPresence = useUpdateMyPresence()
+  const remoteFieldSelections = useOthers((others) => {
+    const map: Record<string, string> = {}
+    for (const o of others) {
+      if (o.presence.pageId === currentPageId && o.presence.editingField) {
+        map[o.presence.editingField] = o.info?.color ?? '#9DAFFA'
+      }
+    }
+    return map
+  }, shallow)
 
   useEffect(() => {
     function checkScale() {
@@ -250,6 +330,7 @@ function EditView() {
 
   useEffect(() => {
     const url = new URL(window.location.href)
+    url.hash = '' // present mode's #<slide> hash, stale once back in edit
     if (deck.pages.length === 0) {
       url.searchParams.delete('page')
     } else {
@@ -290,30 +371,81 @@ function EditView() {
   useKey('up', prevPage)
   useKey('down', nextPage)
 
+  // Present the current slide, taking over the screen. Exiting fullscreen
+  // (or Escape) returns to edit mode via LivePresentView's onExit.
+  const present = () => {
+    window.location.hash = String($currentIndex.get() + 1)
+    $mode.set('present')
+    document.body.requestFullscreen().catch(() => {})
+  }
+  useKey('f', present)
+
+  // View settings: "g" toggles the theme's grid overlay on the edit stage.
+  useKey('g', () => toggleViewSetting('grid'))
+
+  // Track image drags over the window so image fields (SlideImage) can
+  // show their dashed drop-target outline.
+  useEffect(() => (files ? installImageDragTracking() : undefined), [files])
+
   const showPageNumbers = !!deck.config?.page_numbers
   const data = deck.pages[currentIndex]
   const total = deck.pages.length
+  const GridOverlay = theme.gridOverlay
+
+  // Fallback for drops that miss a specific field: upload to the room and
+  // set the slide's image field (the first empty one, else the first).
+  // Field-level targets (SlideImage) handle their own drops and stop
+  // propagation before this fires.
+  const dropImage = async (e: React.DragEvent) => {
+    const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'))
+    if (!file || !files || !data) return
+    e.preventDefault()
+    const keys = imageFieldKeys(templates[data.template]?.Schema)
+    if (keys.length === 0) return
+    const field = keys.find((k) => !data[k]) ?? keys[0]
+    setUploading(true)
+    try {
+      const ref = await files.upload(file)
+      updatePage($currentIndex.get(), { [field]: ref })
+    } catch (err) {
+      console.error('Image upload failed', err)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <EditShell>
-      <div className="w-full h-full relative bg-[#333]">
+      <div
+        className="w-full h-full relative bg-[#333]"
+        onDragOver={(e) => {
+          if (files && e.dataTransfer.types.includes('Files')) e.preventDefault()
+        }}
+        onDrop={dropImage}
+      >
         {data ? (
           <Page
             key={currentPageId ?? currentIndex}
             data={data}
             scale={scale}
             templates={templates}
+            pageInfo={{ number: currentIndex + 1, total }}
+            overlay={viewSettings.grid && GridOverlay ? <GridOverlay /> : undefined}
             onEditField={(field, value, index) => {
               if (index === undefined) {
                 updatePage($currentIndex.get(), { [field]: value })
                 return
               }
-              // String-array item: patch the array with the item replaced.
-              const current = ($currentPage.get() as any)?.[field]
+              // Array item: "field" replaces a string item, "field.key" a key
+              // within an object item (e.g. StatRows' rows.stat).
+              const [arrayField, subKey] = field.split('.')
+              const current = ($currentPage.get() as any)?.[arrayField]
               const items = Array.isArray(current) ? current.slice() : []
-              items[index] = value
-              updatePage($currentIndex.get(), { [field]: items })
+              items[index] = subKey ? { ...items[index], [subKey]: value } : value
+              updatePage($currentIndex.get(), { [arrayField]: items })
             }}
+            onEditingField={(fieldKey) => updateMyPresence({ editingField: fieldKey })}
+            remoteFieldSelections={remoteFieldSelections}
             pageNumber={
               showPageNumbers ? (
                 <div className="absolute bottom-[40px] right-[40px] opacity-40 text-sans-sm">
@@ -323,11 +455,13 @@ function EditView() {
             }
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-quaternary text-mono-xs">
+          <Muted className="absolute inset-0 flex items-center justify-center">
             No pages — click “new slide” in the sidebar.
-          </div>
+          </Muted>
         )}
-        <StageCursors scale={scale} />
+        {uploading && (
+          <Muted className="absolute bottom-3 left-3 z-10">Uploading image…</Muted>
+        )}
       </div>
     </EditShell>
   )

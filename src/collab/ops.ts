@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid'
 import * as Y from 'yjs'
 
-import { parsePage } from '../content/markdown'
-import { compileTemplate } from './compile'
+import { parsePage, serializePage } from '../content/markdown'
+import type { PageData } from '../model'
 import {
   LOCAL_ORIGIN,
   applyTextDiff,
@@ -14,9 +14,10 @@ import {
 } from './doc'
 
 /**
- * Pure operations on a deck Y.Doc, used by the MCP server (which fetches the
- * room doc, applies an op, and sends the diff back). Every mutation validates
- * first and throws OpError with an agent-readable message on bad input.
+ * Shared document commands for the editor and MCP. These depend only on the
+ * document codec, never on React, a template runtime, or transport APIs.
+ * Page commands validate source before writing. Template source may be an
+ * unfinished draft; callers choose when to transpile/evaluate it.
  */
 
 export class OpError extends Error {}
@@ -79,9 +80,9 @@ export function readSlide(ydoc: Y.Doc, pageId: string): string {
 }
 
 /** Validate a page source, throwing OpError with the parse failure. */
-function assertParses(source: string): void {
+function assertParses(source: string): PageData {
   try {
-    parsePage(source)
+    return parsePage(source)
   } catch (e) {
     throw new OpError(
       `Source does not parse: ${e instanceof Error ? e.message : String(e)}`,
@@ -94,6 +95,21 @@ export function updateSlide(ydoc: Y.Doc, pageId: string, source: string): void {
   const ytext = getPage(ydoc, pageId).get('source') as Y.Text | undefined
   if (!ytext) throw new OpError(`Slide "${pageId}" has no source text`)
   ydoc.transact(() => applyTextDiff(ytext, ytext.toString(), source), LOCAL_ORIGIN)
+}
+
+/** Empty patch values delete keys; existing empty strings remain deliberate. */
+export function mergePatch(current: PageData, patch: Partial<PageData>): PageData {
+  const merged: PageData = { ...current, ...patch }
+  for (const key of Object.keys(patch)) {
+    if (patch[key] === '' && key !== 'template') delete merged[key]
+  }
+  return merged
+}
+
+/** Always merge against actual source, never a cached last-good parse. */
+export function patchSlide(ydoc: Y.Doc, pageId: string, patch: Partial<PageData>): void {
+  const current = assertParses(readSlide(ydoc, pageId))
+  updateSlide(ydoc, pageId, serializePage(mergePatch(current, patch)))
 }
 
 function slugify(value: string): string {
@@ -202,19 +218,9 @@ export function readDocTemplate(ydoc: Y.Doc, name: string): string {
   return (tmap.get('source') as Y.Text | undefined)?.toString() ?? ''
 }
 
-/** Compile-validate template source, throwing OpError so the agent can retry. */
-function assertCompiles(source: string): void {
-  try {
-    compileTemplate(source)
-  } catch (e) {
-    throw new OpError(`Compile failed: ${e instanceof Error ? e.message : String(e)}`)
-  }
-}
-
 export function createDocTemplate(ydoc: Y.Doc, name: string, source: string): void {
   const templates = getTemplatesMap(ydoc)
   if (templates.has(name)) throw new OpError(`Custom template "${name}" already exists`)
-  assertCompiles(source)
   ydoc.transact(() => {
     const tmap = new Y.Map<any>()
     const ytext = new Y.Text()
@@ -231,7 +237,6 @@ export function updateDocTemplate(ydoc: Y.Doc, name: string, source: string): vo
       `No custom template named "${name}" — built-in templates are read-only; use create_template to make an editable copy`,
     )
   }
-  assertCompiles(source)
   const ytext = tmap.get('source') as Y.Text | undefined
   if (!ytext) throw new OpError(`Template "${name}" has no source text`)
   ydoc.transact(() => applyTextDiff(ytext, ytext.toString(), source), LOCAL_ORIGIN)

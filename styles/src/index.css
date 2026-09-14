@@ -19,13 +19,6 @@
 
 @custom-variant children (& > *);
 
-@theme {
-  --color-indigo-300: #a5b4fc;
-  --color-indigo-400: #818cf8;
-  --color-indigo-500: #6366f1;
-  --color-indigo-950: #1e1b4b;
-}
-
 /* Editor fonts — Oxide brand. Loaded lazily from oxide.computer, so they
  * only count against bandwidth when the editor (.fable-editor) is mounted.
  * `font-display: swap` keeps slides from blocking on these. */
@@ -117,221 +110,38 @@
   font-style: normal;
 }
 
-/* Oxide theme defaults: SuisseIntl for prose and display (hierarchy comes
- * from tone, not weight — see the theme's design.md). The Inter faces above
- * still ship in the package; consumers can revert by reassigning these vars. */
-:root {
-  --fable-font-sans: 'SuisseIntl', -apple-system, BlinkMacSystemFont, Helvetica, Arial,
-    sans-serif;
-  --fable-font-display: 'SuisseIntl', -apple-system, BlinkMacSystemFont, Helvetica, Arial,
-    sans-serif;
-}
-
 html,
-body {
-  -webkit-font-smoothing: antialiased;
-  font-feature-settings: 'ss02' on, 'ss03' on, 'ss09' on, 'ss06' on, 'ss07' on, 'ss08' on,
-    'case' on;
-  -webkit-text-stroke: 0;
-
-  @apply bg-default m-0 h-full;
-}
-
-body {
-  @apply text-default;
-  font-family: var(--fable-font-sans);
-}
-
-h1,
-h2,
-h3,
-h4,
-h5 {
-  font-family: var(--fable-font-display);
-  text-wrap: balance;
-}
-
-#root,
-body {
-  @apply w-full h-full overflow-hidden bg-[#333];
-}
-
-.markdown img {
-  @apply rounded-lg max-w-full max-h-full object-cover mt-5 mb-5;
-}
-
-.page-padding {
-  @apply p-8;
-}
-
-.large-title {
-  @apply text-5xl font-light mb-12 pr-20 text-raise;
-  letter-spacing: -0.01em;
-}
-
-.body-md {
-  @apply text-2xl text-tertiary;
-  line-height: 1.33;
-}
-
-.body-padding p {
-  @apply pr-20;
-}
-
-.body-sm {
-  @apply text-base text-tertiary;
-}
-
-.markdown {
-  @apply flex flex-col space-y-5;
+body,
+#root {
+  height: 100%;
+  overscroll-behavior-y: none;
 }
 
 /* In-canvas text editing (edit stage only — see CanvasEditContext). */
 .fable-editable {
   cursor: text;
-  border-radius: 2px;
-  outline: 1px dashed transparent;
-  outline-offset: 6px;
+  outline: 2px dashed transparent;
   transition: outline-color 120ms ease;
 }
 .fable-editable:hover {
   outline-color: var(--stroke-default, #333);
 }
+/* A collaborator has this field selected — outlined in their presence color.
+ * Declared before -active so the local editing outline wins while typing. */
+.fable-editable-remote {
+  outline: 2px solid var(--fable-remote-color, #9daffa) !important;
+}
 .fable-editable-active {
-  outline: 1px solid var(--stroke-accent, #48d597) !important;
+  outline: 2px solid var(--stroke-accent, #48d597) !important;
 }
 
-.markdown > *:last-child {
-  @apply mb-0;
+/* An image is being dragged over the editor — image fields (SlideImage)
+ * show a dashed accent outline, solid while directly hovered. */
+.fable-droppable {
+  outline: 2px dashed var(--stroke-accent, #48d597) !important;
 }
-
-.error-table {
-  @apply font-mono text-base;
-  border-collapse: collapse;
-  width: 100%;
-}
-
-.error-table td,
-.error-table th {
-  @apply uppercase border border-default text-left p-2;
-}
-
-.error-table th {
-  @apply bg-raise text-tertiary;
-}
-
-.error-table td {
-  @apply bg-default;
-}
-
-.list-item {
-  @apply border-b border-default text-3xl text-tertiary py-8 pr-20;
-}
-
-code:not(pre code) {
-  @apply border rounded border-default bg-raise px-1 py-0 ml-1 mr-1 text-[0.825em];
-}
-
-em {
-  @apply text-accent not-italic;
-}
-
-strong {
-  @apply font-semibold text-raise;
-}
-
-.markdown ul,
-.markdown ol {
-  list-style: revert;
-  @apply ml-4;
-}
-
-ul,
-ol {
-  @apply ml-4;
-}
-
-ul li::marker,
-ol li::marker {
-  @apply text-tertiary;
-}
-
-ul li,
-ol li {
-  @apply pl-2;
-}
-
-ul {
-  @apply list-disc;
-}
-
-ul ul li {
-  list-style-type: circle;
-}
-
-ul ul ul li {
-  list-style-type: square;
-}
-
-ul ul ul ul li {
-  list-style-type: disc;
-}
-
-ol {
-  @apply list-decimal;
-}
-
-ul .list-item:last-of-type {
-  @apply border-b-0 pb-0;
-}
-
-ul .list-item:first-of-type {
-  @apply pt-0;
-}
-
-pre {
-  @apply border border-default rounded-lg p-5 mt-10 mb-5 leading-[1];
-}
-
-pre code {
-  @apply text-sm;
-}
-
-/* Slide stage — slides were authored assuming `font-size: 32px` on html
- * (Tailwind v3 era), but we now keep html at the 16px default so the
- * design-system editor tokens render at their intended sizes. To preserve
- * slide proportions we re-scale Tailwind v4's font-size + spacing tokens
- * inside this scope (2× their defaults), which the rem-based utilities
- * then resolve through. */
-.fable-stage {
-  --text-xs: 1.5rem;
-  --text-xs--line-height: calc(1 / 0.75);
-  --text-sm: 1.75rem;
-  --text-sm--line-height: calc(1.25 / 0.875);
-  --text-base: 2rem;
-  --text-base--line-height: calc(1.5 / 1);
-  --text-lg: 2.25rem;
-  --text-lg--line-height: calc(1.75 / 1.125);
-  --text-xl: 2.5rem;
-  --text-xl--line-height: calc(1.75 / 1.25);
-  --text-2xl: 3rem;
-  --text-2xl--line-height: calc(2 / 1.5);
-  --text-3xl: 3.75rem;
-  --text-3xl--line-height: calc(2.25 / 1.875);
-  --text-4xl: 4.5rem;
-  --text-4xl--line-height: calc(2.5 / 2.25);
-  --text-5xl: 6rem;
-  --text-5xl--line-height: 1;
-  --text-6xl: 7.5rem;
-  --text-6xl--line-height: 1;
-  --text-7xl: 9rem;
-  --text-7xl--line-height: 1;
-  --text-8xl: 12rem;
-  --text-8xl--line-height: 1;
-  --text-9xl: 16rem;
-  --text-9xl--line-height: 1;
-
-  --spacing: 0.5rem;
+.fable-droppable-over {
+  outline-style: solid !important;
 }
 
 /* Editor frame — uses the Oxide design system tokens & fonts. Scoped so

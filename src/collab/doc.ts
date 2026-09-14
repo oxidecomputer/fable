@@ -3,6 +3,9 @@ import { nanoid } from 'nanoid'
 import * as Y from 'yjs'
 
 import { type PageData, parsePage, serializePage } from '../content/markdown'
+import type { DeckContent, DeckMeta } from '../model'
+
+export type { DeckContent, DeckMeta } from '../model'
 
 /**
  * Yjs document layout (one doc per room = one deck):
@@ -19,12 +22,6 @@ import { type PageData, parsePage, serializePage } from '../content/markdown'
 /** Origin tag for local transactions — tracked by the shared UndoManager. */
 export const LOCAL_ORIGIN = 'fable-local'
 
-export type DeckMeta = {
-  title?: string
-  config?: { page_numbers?: boolean }
-}
-export type DeckContent = DeckMeta & { pages: PageData[] }
-
 export function getMetaMap(ydoc: Y.Doc): Y.Map<any> {
   return ydoc.getMap('meta')
 }
@@ -39,6 +36,15 @@ export function getPagesMap(ydoc: Y.Doc): Y.Map<Y.Map<any>> {
 
 export function getTemplatesMap(ydoc: Y.Doc): Y.Map<Y.Map<any>> {
   return ydoc.getMap('templates')
+}
+
+export function readTemplateSources(ydoc: Y.Doc): Record<string, string> {
+  return Object.fromEntries(
+    [...getTemplatesMap(ydoc)].map(([name, template]) => [
+      name,
+      (template.get('source') as Y.Text | undefined)?.toString() ?? '',
+    ]),
+  )
 }
 
 export function makePageMap(source: string, filename: string): Y.Map<any> {

@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { NEW_TEMPLATE_SOURCE } from '../../collab/compile'
 import CodeEditor from '../fields/CodeEditor'
 import { $currentIndex, $currentPage, $templates, switchTemplate } from '../store'
+import { Button, EditorPane, Muted } from '../ui'
 import { $collabBridge } from './room'
 import { $docTemplateErrors, $docTemplateNames } from './templates-store'
 
@@ -32,7 +33,7 @@ export default function TemplatesPanel() {
   }, [bridge, name, isDoc])
 
   if (!bridge || !page || !name) {
-    return <div className="text-mono-xs text-quaternary italic">No page selected</div>
+    return <Muted className="italic">No page selected</Muted>
   }
 
   const mod = templates[name]
@@ -65,24 +66,19 @@ export default function TemplatesPanel() {
   // Doc-stored template: collaboratively editable.
   if (isDoc && collab) {
     return (
-      <div className="flex flex-1 flex-col min-h-0">
+      <EditorPane error={compileError}>
         {header(
           'custom · live for everyone',
-          <button
-            type="button"
+          <Button
+            variant="destructive"
             onClick={() => bridge.removeTemplate(name)}
-            className="text-mono-xs text-destructive bg-default hover:bg-hover border border-default rounded px-2 py-1 shrink-0"
+            className="shrink-0"
           >
             Delete
-          </button>,
+          </Button>,
         )}
         <CodeEditor key={name} collab={collab} language="tsx" hasError={!!compileError} />
-        {compileError && (
-          <div className="shrink-0 mt-2 text-mono-xs text-destructive whitespace-pre-wrap">
-            {compileError}
-          </div>
-        )}
-      </div>
+      </EditorPane>
     )
   }
 
@@ -94,13 +90,12 @@ export default function TemplatesPanel() {
         <p className="text-mono-xs text-quaternary">
           This slide references a template that doesn’t exist.
         </p>
-        <button
-          type="button"
+        <Button
           onClick={() => bridge.addTemplate(name, NEW_TEMPLATE_SOURCE)}
-          className="self-start text-mono-xs text-default bg-default hover:bg-hover border border-default rounded px-2 py-1.5"
+          className="self-start"
         >
           Create “{name}” as a custom template
-        </button>
+        </Button>
       </div>
     )
   }
@@ -110,13 +105,9 @@ export default function TemplatesPanel() {
     <div className="flex flex-1 flex-col min-h-0">
       {header(
         'built-in · read-only',
-        <button
-          type="button"
-          onClick={editACopy}
-          className="text-mono-xs text-default bg-default hover:bg-hover border border-default rounded px-2 py-1 shrink-0"
-        >
+        <Button onClick={editACopy} className="shrink-0">
           Edit a copy
-        </button>,
+        </Button>,
       )}
       {mod.source ? (
         <CodeEditor key={name} value={mod.source} language="tsx" readOnly />

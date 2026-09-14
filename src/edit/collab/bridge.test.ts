@@ -11,6 +11,7 @@ import {
   $pageIds,
   $pagesById,
   $title,
+  mergePatch,
   noopBackend,
   setBackend,
 } from '../store'
@@ -82,6 +83,20 @@ describe('bridge write path (backend)', () => {
     expect(readDeck(ydoc).content.pages[0].title).toBe('Renamed')
   })
 
+  it('keeps unfinished source intact when a canvas edit or template switch arrives', () => {
+    const { bridge } = current
+    const id = $pageIds.get()[0]
+    const source = bridge.getPageText(id)!
+    source.delete(0, 4)
+    const draft = source.toString()
+    bridge.backend.updatePage(id, { title: 'Canvas edit' })
+    bridge.backend.switchTemplate(id, 'Cover')
+    bridge.backend.setPage(id, { template: 'Cover', title: 'Replacement' })
+    expect(source.toString()).toBe(draft)
+    expect($pageErrors.get()[id]).toBeTruthy()
+    expect($pagesById.get()[id]).toEqual(deck.pages[0])
+  })
+
   it("updatePage with '' deletes the key", () => {
     const { bridge } = current
     const id = $pageIds.get()[0]
@@ -91,7 +106,7 @@ describe('bridge write path (backend)', () => {
 
   it('addPage / removePage / movePage', () => {
     const { bridge } = current
-    bridge.backend.addPage('Basic')
+    bridge.backend.addPage({ template: 'Basic' })
     expect($pageIds.get()).toHaveLength(3)
     expect($filenames.get()[2]).toBe('untitled.md')
     expect($currentPageId.get()).toBe($pageIds.get()[2])
@@ -102,6 +117,13 @@ describe('bridge write path (backend)', () => {
     bridge.backend.removePage($pageIds.get()[0])
     expect($pageIds.get()).toHaveLength(2)
     expect($deck.get().pages.map((p) => p.title)).toEqual(['One', 'Two'])
+  })
+
+  it('addPage inserts at an index with the given data', () => {
+    const { bridge } = current
+    bridge.backend.addPage({ template: 'Basic', title: 'Between' }, 1)
+    expect($deck.get().pages.map((p) => p.title)).toEqual(['One', 'Between', 'Two'])
+    expect($currentPageId.get()).toBe($pageIds.get()[1])
   })
 
   it('setTitle updates meta', () => {
@@ -141,6 +163,18 @@ describe('bridge write path (backend)', () => {
     expect(result.content.pages[0].title).toBe('From A')
     expect(result.content.pages[1].text).toContain('B body')
     expect(readDeck(other).content).toEqual(result.content)
+  })
+})
+
+describe('mergePatch', () => {
+  it("deletes keys the patch sets to '' but keeps existing empty strings", () => {
+    const current = { template: 'Basic', title: '', text: 'body' }
+    expect(mergePatch(current, { text: '' })).toEqual({ template: 'Basic', title: '' })
+    expect(mergePatch(current, { text: 'new' })).toEqual({
+      template: 'Basic',
+      title: '',
+      text: 'new',
+    })
   })
 })
 

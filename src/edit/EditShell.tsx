@@ -1,11 +1,12 @@
 import { useValue } from '@tldraw/state-react'
 import { type ReactNode, useState } from 'react'
+import { z } from 'zod'
 
+import { missingFieldPlaceholders } from '../content/placeholders'
+import { unwrapEffects } from '../templates/validation'
 import PageList from './PageList'
 import RawEditor from './RawEditor'
-import SchemaForm from './SchemaForm'
 import Avatars from './collab/Avatars'
-import CommentsPanel from './collab/CommentsPanel'
 import TemplatesPanel from './collab/TemplatesPanel'
 import {
   $currentIndex,
@@ -18,11 +19,35 @@ import {
   switchTemplate,
   updatePage,
 } from './store'
+import { Button, NoticeBox, Select } from './ui'
 import { useSchemaErrors } from './useSchemaErrors'
 
 type Props = { children: ReactNode }
 
-type Tab = 'content' | 'source' | 'comments' | 'templates'
+type Tab = 'source' | 'templates'
+
+/**
+ * A template's native variants: the options of a top-level `variant` enum
+ * field in its schema, when it has one. `optional` adds a Default choice
+ * (clearing the key so the template's own fallback applies).
+ */
+function variantOptions(
+  schema: z.ZodTypeAny | undefined,
+): { options: readonly string[]; optional: boolean } | null {
+  const s = unwrapEffects(schema)
+  if (!(s instanceof z.ZodObject)) return null
+  let v: any = (s.shape as Record<string, z.ZodTypeAny>).variant
+  let optional = false
+  while (
+    v instanceof z.ZodOptional ||
+    v instanceof z.ZodNullable ||
+    v instanceof z.ZodDefault
+  ) {
+    optional = true
+    v = v._def.innerType
+  }
+  return v instanceof z.ZodEnum ? { options: v.options, optional } : null
+}
 
 function TabButton({
   active,
@@ -83,14 +108,20 @@ export default function EditShell({ children }: Props) {
   const index = useValue($currentIndex)
   const pageErrors = useValue($pageErrors)
   const inspectorWidth = useValue($inspectorWidth)
-  const [tab, setTab] = useState<Tab>('content')
+  const [tab, setTab] = useState<Tab>('source')
 
   const parseError = pageId ? pageErrors[pageId] : undefined
 
   const template = page ? templates[page.template] : undefined
-  const errors = useSchemaErrors(template, page ?? {})
-  const errorKeys = new Set<string>()
-  if (errors) for (const e of errors) if (e.path[0]) errorKeys.add(String(e.path[0]))
+  const errors = useSchemaErrors(template, page ?? { template: '' })
+  // Split "field has no value" from real mistakes: the former gets a one-click
+  // fix that writes placeholders into the page source.
+  const missing =
+    errors?.filter(
+      (e) => e.code === 'invalid_type' && e.received === 'undefined' && e.path.length === 1,
+    ) ?? []
+  const otherErrors = errors?.filter((e) => !missing.includes(e)) ?? []
+  const variants = variantOptions(template?.Schema)
 
   return (
     <div className="fable-editor flex h-full">
@@ -105,19 +136,19 @@ export default function EditShell({ children }: Props) {
         <div className="absolute top-3 right-3 z-10">
           <Avatars />
         </div>
-        {errors && errors.length > 0 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 max-w-[80%] rounded border bg-notice text-notice border-notice px-3 py-1.5 text-sans-sm backdrop-blur-sm shadow-lg">
+        {otherErrors.length > 0 && (
+          <NoticeBox className="absolute bottom-3 left-1/2 -translate-x-1/2 max-w-[80%] px-3 py-1.5 text-sans-sm backdrop-blur-sm shadow-lg">
             <div className="font-medium mb-0.5">
-              {errors.length} schema {errors.length === 1 ? 'issue' : 'issues'}
+              {otherErrors.length} schema {otherErrors.length === 1 ? 'issue' : 'issues'}
             </div>
             <ul className="space-y-0.5">
-              {errors.map((e, i) => (
+              {otherErrors.map((e, i) => (
                 <li key={i}>
                   <code>{e.path.join('.') || '(root)'}</code> — {e.message}
                 </li>
               ))}
             </ul>
-          </div>
+          </NoticeBox>
         )}
       </div>
 
@@ -126,71 +157,79 @@ export default function EditShell({ children }: Props) {
         className="relative shrink-0 flex flex-col border-l border-default bg-raise text-default"
       >
         <ResizeHandle />
+        {page && (
+          <div className="shrink-0 p-3 border-b border-default">
+            <div className="flex gap-2">
+              <Select
+                value={page.template ?? ''}
+                disabled={!!parseError}
+                title={
+                  parseError
+                    ? 'Page source is currently unparseable (someone may be mid-edit)'
+                    : undefined
+                }
+                onChange={(e) => switchTemplate(index, e.target.value)}
+                className="flex-1 min-w-0"
+              >
+                {Object.keys(templates)
+                  .sort()
+                  .map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                {!templates[page.template] && (
+                  <option value={page.template}>{page.template} (missing)</option>
+                )}
+              </Select>
+              {variants && (
+                <Select
+                  value={typeof page.variant === 'string' ? page.variant : ''}
+                  disabled={!!parseError}
+                  onChange={(e) => updatePage(index, { variant: e.target.value })}
+                  className="shrink-0"
+                >
+                  {variants.optional && <option value="">Default</option>}
+                  {variants.options.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </div>
+            {missing.length > 0 && (
+              <NoticeBox className="mt-2 px-2 py-1.5 text-mono-xs">
+                <div className="mb-1.5">
+                  Missing {missing.length === 1 ? 'field' : 'fields'}:{' '}
+                  <code>{missing.map((e) => e.path[0]).join(', ')}</code>
+                </div>
+                <Button
+                  variant="notice"
+                  onClick={() =>
+                    updatePage(
+                      index,
+                      missingFieldPlaceholders(template?.Schema, page ?? {}),
+                    )
+                  }
+                >
+                  Insert placeholders
+                </Button>
+              </NoticeBox>
+            )}
+          </div>
+        )}
         <header className="shrink-0 flex items-center border-b border-default bg-raise">
-          <TabButton active={tab === 'content'} onClick={() => setTab('content')}>
-            Content
-          </TabButton>
           <TabButton active={tab === 'source'} onClick={() => setTab('source')}>
             Source
           </TabButton>
-          <TabButton active={tab === 'comments'} onClick={() => setTab('comments')}>
-            Comments
-          </TabButton>
           <TabButton active={tab === 'templates'} onClick={() => setTab('templates')}>
-            Templates
+            Template
           </TabButton>
         </header>
 
         <section className="flex-1 min-h-0 flex flex-col p-3">
-          {tab === 'source' ? (
-            <RawEditor />
-          ) : tab === 'comments' ? (
-            <CommentsPanel />
-          ) : tab === 'templates' ? (
-            <TemplatesPanel />
-          ) : !page ? (
-            <div className="text-mono-xs text-quaternary italic">No page selected</div>
-          ) : tab === 'content' ? (
-            <>
-              {parseError && (
-                <div className="shrink-0 mb-3 rounded border border-notice bg-notice text-notice px-2 py-1.5 text-mono-xs">
-                  Page source is currently unparseable (someone may be mid-edit) — fields
-                  are disabled.
-                </div>
-              )}
-              <div
-                className={`flex flex-1 flex-col min-h-0 overflow-y-auto ${
-                  parseError ? 'pointer-events-none opacity-50' : ''
-                }`}
-              >
-                <label className="block mb-3">
-                  <span className="block text-mono-xs text-quaternary mb-1">Template</span>
-                  <select
-                    value={page.template ?? ''}
-                    onChange={(e) => switchTemplate(index, e.target.value)}
-                    className="w-full bg-default border border-default rounded text-sans-sm px-2 py-1.5 text-default focus:outline-none focus:border-accent-secondary"
-                  >
-                    {Object.keys(templates)
-                      .sort()
-                      .map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    {!templates[page.template] && (
-                      <option value={page.template}>{page.template} (missing)</option>
-                    )}
-                  </select>
-                </label>
-                <SchemaForm
-                  schema={template?.Schema}
-                  value={page}
-                  errorKeys={errorKeys}
-                  onChange={(key, next) => updatePage(index, { [key]: next })}
-                />
-              </div>
-            </>
-          ) : null}
+          {tab === 'source' ? <RawEditor /> : <TemplatesPanel />}
         </section>
       </aside>
     </div>

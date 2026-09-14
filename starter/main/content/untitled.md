@@ -1,4 +1,0 @@
----
-template: Example
-title: ~Test~
----

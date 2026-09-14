@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { Button, ErrorText, Input, Muted } from './ui'
+
 export type DeckIndexConfig = {
   decksEndpoint: string
   apiToken?: string
@@ -81,34 +83,20 @@ export default function DeckIndex({ config }: { config: DeckIndexConfig }) {
           }}
           className="flex gap-2 mb-8"
         >
-          <input
+          <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="New deck name"
-            className="flex-1 bg-raise border border-default rounded text-sans-md px-3 py-2 text-default placeholder:text-quaternary focus:outline-none focus:border-accent-secondary"
+            className="flex-1"
           />
-          <button
-            type="submit"
-            disabled={!slugify(name)}
-            className="text-mono-sm text-accent bg-accent-secondary hover:bg-accent-secondary-hover disabled:opacity-50 rounded px-4 py-2"
-          >
+          <Button type="submit" variant="primary" disabled={!slugify(name)}>
             Create
-          </button>
+          </Button>
         </form>
 
-        {error && (
-          <div className="text-mono-xs text-destructive mb-4">
-            Failed to load decks: {error}
-          </div>
-        )}
-        {!decks && !error && (
-          <div className="text-mono-xs text-quaternary">Loading decks…</div>
-        )}
-        {decks && decks.length === 0 && (
-          <div className="text-mono-xs text-quaternary">
-            No decks yet — create one above.
-          </div>
-        )}
+        {error && <ErrorText className="mb-4">Failed to load decks: {error}</ErrorText>}
+        {!decks && !error && <Muted>Loading decks…</Muted>}
+        {decks && decks.length === 0 && <Muted>No decks yet — create one above.</Muted>}
 
         <ul className="list-none p-0 m-0 divide-y divide-[var(--stroke-secondary,#222)] border-y border-default">
           {(decks ?? []).map((deck) => (

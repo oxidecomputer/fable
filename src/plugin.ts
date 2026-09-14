@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import fs from 'node:fs/promises'
+import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import os from 'node:os'
 import path from 'node:path'
@@ -13,11 +13,14 @@ import {
   createLiveblocks,
   ensureRoom,
   fetchDocTemplateSources,
+  getRoomFileUrl,
   listDecks,
   seedRoom,
+  uploadRoomFile,
 } from './node/collab'
 import { loadDeck } from './node/deck-files'
 import { docTemplateScratchDir, syncDocTemplateScratch } from './node/doc-template-scan'
+import { discoverTemplates, resolveThemeEntry } from './node/templates'
 
 export type FableOptions = {
   /** Path (relative to project root) of the custom templates directory. Default: 'templates'. */
@@ -43,13 +46,17 @@ function normalize(p: string) {
   return p.replace(/^\.?\/+/, '').replace(/\/+$/, '')
 }
 
-async function readReqBody(req: Connect.IncomingMessage): Promise<string> {
+async function readReqBytes(req: Connect.IncomingMessage): Promise<Buffer> {
   const chunks: Buffer[] = []
   return new Promise((resolve, reject) => {
     req.on('data', (c: Buffer) => chunks.push(c))
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+    req.on('end', () => resolve(Buffer.concat(chunks)))
     req.on('error', reject)
   })
+}
+
+async function readReqBody(req: Connect.IncomingMessage): Promise<string> {
+  return (await readReqBytes(req)).toString('utf8')
 }
 
 function sendJson(res: any, status: number, body: any) {
@@ -125,6 +132,55 @@ function attachDocTemplateMiddleware(server: ViteDevServer, userRoot: string) {
   })
 }
 
+/**
+ * Room-stored files (slide images): POST /_fable/files/<roomId> uploads raw
+ * bytes to Liveblocks file storage; GET /_fable/files/<roomId>/<fileId>
+ * redirects to a presigned download URL, so `fable:<fileId>` refs in page
+ * sources resolve as stable img srcs.
+ */
+function attachFilesMiddleware(server: ViteDevServer, secret: string) {
+  server.middlewares.use('/_fable/files', async (req, res) => {
+    const segments = (req.url ?? '')
+      .split('?')[0]
+      .split('/')
+      .filter(Boolean)
+      .map(decodeURIComponent)
+    const liveblocks = createLiveblocks(secret)
+    try {
+      if (req.method === 'POST' && segments.length === 1) {
+        const bytes = await readReqBytes(req)
+        if (bytes.byteLength === 0) {
+          sendJson(res, 400, { error: 'Empty file' })
+          return
+        }
+        if (bytes.byteLength > 50 * 1024 * 1024) {
+          sendJson(res, 413, { error: 'File exceeds 50 MB' })
+          return
+        }
+        const name = decodeURIComponent(String(req.headers['x-fable-filename'] ?? 'upload'))
+        const mimeType = String(req.headers['content-type'] ?? 'application/octet-stream')
+        const info = await uploadRoomFile(liveblocks, segments[0], bytes, name, mimeType)
+        sendJson(res, 200, info)
+        return
+      }
+      if (req.method === 'GET' && segments.length === 2) {
+        const url = await getRoomFileUrl(liveblocks, segments[0], segments[1])
+        res.statusCode = 302
+        res.setHeader('location', url)
+        // Presigned URLs rotate hourly; a short browser cache keeps slide
+        // re-renders from re-fetching the redirect.
+        res.setHeader('cache-control', 'private, max-age=300')
+        res.end()
+        return
+      }
+      sendJson(res, 404, { error: 'Not found' })
+    } catch (err: any) {
+      const status = err?.status === 404 ? 404 : 500
+      sendJson(res, status, { error: err instanceof Error ? err.message : String(err) })
+    }
+  })
+}
+
 /** Deck index data: rooms with titles/sizes, for the app's landing page. */
 function attachDecksMiddleware(server: ViteDevServer, secret: string) {
   server.middlewares.use('/_fable/decks', async (req, res) => {
@@ -179,6 +235,17 @@ export default function fable(options: FableOptions = {}): PluginOption {
   let userRoot = options.userRoot ?? process.cwd()
   let isDev = false
 
+  // The selected theme's stylesheet, when it ships one. It's @imported into
+  // the package stylesheet (see transform below) instead of being imported
+  // from the theme module: Tailwind tree-shakes @theme variables it never
+  // sees used, and a stylesheet outside its root doesn't count — the theme
+  // CSS's var(--color-*) references would resolve to nothing at runtime.
+  const themeName = process.env.FABLE_THEME ?? 'oxcon26'
+  const themeCss = /^[a-zA-Z0-9_-]+$/.test(themeName)
+    ? path.join(packageRoot, 'src', 'themes', themeName, 'styles.css')
+    : undefined
+  const hasThemeCss = themeCss !== undefined && fs.existsSync(themeCss)
+
   const fablePlugin: Plugin = {
     name: 'fable',
     enforce: 'pre',
@@ -208,6 +275,9 @@ export default function fable(options: FableOptions = {}): PluginOption {
 
     config() {
       return {
+        // File templates and the runtime must share React contexts and Zod
+        // constructors, including when MCP loads files outside node_modules.
+        resolve: { dedupe: ['react', 'react-dom', 'zod'] },
         optimizeDeps: {
           include: ['mousetrap', 'highlight.js', 'react', 'react-dom/client'],
         },
@@ -223,6 +293,7 @@ export default function fable(options: FableOptions = {}): PluginOption {
         attachLiveblocksMiddleware(server, secret)
         attachDocTemplateMiddleware(server, userRoot)
         attachDecksMiddleware(server, secret)
+        attachFilesMiddleware(server, secret)
         loadDeck(userRoot)
           .then(async ({ room }) => {
             if (room) {
@@ -243,7 +314,7 @@ export default function fable(options: FableOptions = {}): PluginOption {
           })
       } else {
         server.config.logger.warn(
-          '[fable] LIVEBLOCKS_SECRET_KEY is not set — editing is disabled (present mode only)',
+          '[fable] Local backend is disabled — set LIVEBLOCKS_SECRET_KEY or connect with VITE_FABLE_API_URL',
         )
       }
 
@@ -303,12 +374,23 @@ export default function fable(options: FableOptions = {}): PluginOption {
       // via a virtual CSS module) ensures @tailwindcss/vite actually
       // processes the directive.
       if (id === PACKAGE_STYLES || id.startsWith(PACKAGE_STYLES + '?')) {
+        let css = code
+        // The theme's stylesheet joins the Tailwind root here (see themeCss
+        // above). @import must precede other rules, so splice it in after
+        // the package's own imports — also the right cascade spot: theme
+        // rules override the design system's.
+        if (hasThemeCss) {
+          const imports = [...css.matchAll(/^@import .*$/gm)]
+          const last = imports[imports.length - 1]
+          const at = last ? last.index + last[0].length : 0
+          css = css.slice(0, at) + `\n@import ${JSON.stringify(themeCss)};` + css.slice(at)
+        }
         const templatesPath = path.join(userRoot, templatesDir)
         // Doc-stored templates are mirrored into a scratch dir (see
         // node/doc-template-scan.ts) so their utility classes exist too.
         const scratchPath = docTemplateScratchDir(userRoot)
         return [
-          code,
+          css,
           `@source ${JSON.stringify(templatesPath)};`,
           `@source ${JSON.stringify(scratchPath)};`,
           '',
@@ -319,19 +401,10 @@ export default function fable(options: FableOptions = {}): PluginOption {
     async load(id) {
       if (id !== RESOLVED_ENTRY) return
 
-      const templatesPath = path.join(userRoot, templatesDir)
-      let templateFiles: string[] = []
-      try {
-        templateFiles = (await fs.readdir(templatesPath)).filter((f) =>
-          /\.(jsx|tsx)$/.test(f),
-        )
-      } catch {
-        /* templates dir is optional */
-      }
+      const templateFiles = await discoverTemplates(userRoot, templatesDir)
 
       const templateImports = templateFiles
-        .map((file, i) => {
-          const abs = path.join(templatesPath, file)
+        .map(({ filename: abs }, i) => {
           // The raw source rides along so the editor can fork a file template
           // into a doc-stored custom template.
           return [
@@ -342,9 +415,10 @@ export default function fable(options: FableOptions = {}): PluginOption {
         .join('\n')
 
       const templateEntries = templateFiles
-        .map((file, i) => {
-          const name = file.replace(/\.(jsx|tsx)$/, '')
-          return `  ${JSON.stringify(name)}: { ...t_${i}, source: t_${i}_source },`
+        .map(({ name }, i) => {
+          return `  ${JSON.stringify(
+            name,
+          )}: { ...t_${i}, ...templateModule(t_${i}), source: t_${i}_source },`
         })
         .join('\n')
 
@@ -355,6 +429,7 @@ export default function fable(options: FableOptions = {}): PluginOption {
       let collab: {
         authEndpoint: string
         decksEndpoint: string
+        filesEndpoint: string
         apiToken?: string
       } | null = null
       const apiUrl = process.env.VITE_FABLE_API_URL
@@ -362,12 +437,14 @@ export default function fable(options: FableOptions = {}): PluginOption {
         collab = {
           authEndpoint: '/_fable/liveblocks-auth',
           decksEndpoint: '/_fable/decks',
+          filesEndpoint: '/_fable/files',
         }
       } else if (apiUrl) {
         const apiBase = apiUrl.replace(/\/$/, '')
         collab = {
           authEndpoint: `${apiBase}/api/liveblocks-auth`,
           decksEndpoint: `${apiBase}/api/decks`,
+          filesEndpoint: `${apiBase}/api/files`,
         }
         if (process.env.VITE_FABLE_API_TOKEN) {
           collab.apiToken = process.env.VITE_FABLE_API_TOKEN
@@ -376,11 +453,25 @@ export default function fable(options: FableOptions = {}): PluginOption {
 
       const initial = JSON.stringify({ collab })
 
+      // The deck directory picks its theme with FABLE_THEME (settable from
+      // the deck's .env — the CLI loads it before Vite starts). Only the
+      // selected theme is imported, so the default bundle stays oxcon26-only.
+      const themeName = process.env.FABLE_THEME
+      let themeImport = ''
+      if (themeName && themeName !== 'oxcon26') {
+        const themeEntry = await resolveThemeEntry(themeName)
+        themeImport = `import theme from ${JSON.stringify(themeEntry)}`
+      }
+
       return `
 import { StrictMode, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from ${JSON.stringify(PACKAGE_APP_ENTRY)}
+import { templateModule } from ${JSON.stringify(
+        path.join(packageRoot, 'src', 'templates', 'validation.ts'),
+      )}
 import ${JSON.stringify(PACKAGE_STYLES)}
+${themeImport}
 ${templateImports}
 
 const { collab } = ${initial}
@@ -395,7 +486,11 @@ if (el) {
     createElement(
       StrictMode,
       null,
-      createElement(App, { customTemplates, collab: collab ?? undefined }),
+      createElement(App, {
+        customTemplates,
+        collab: collab ?? undefined,
+        ${themeImport ? 'theme,' : ''}
+      }),
     ),
   )
 }

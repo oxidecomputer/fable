@@ -3,8 +3,9 @@ import { getYjsProviderForRoom } from '@liveblocks/yjs'
 import { atom, react } from '@tldraw/state'
 import { type ReactNode, useEffect, useState } from 'react'
 
-import type { TemplateMap } from '../../Page'
+import type { TemplateExports, TemplateMap } from '../../model'
 import { $currentPageId, applyPageFromUrl, noopBackend, setBackend } from '../store'
+import { CenteredNotice, Muted } from '../ui'
 import { type CollabBridge, connectBridge } from './bridge'
 
 export type CollabConfig = {
@@ -16,10 +17,11 @@ export type CollabConfig = {
 
 export type Presence = {
   pageId: string | null
-  cursor: { x: number; y: number } | null
+  /** Canvas field this user is editing (`field` or `field:index`), if any. */
+  editingField: string | null
 }
 
-export const INITIAL_PRESENCE: Presence = { pageId: null, cursor: null }
+export const INITIAL_PRESENCE: Presence = { pageId: null, editingField: null }
 
 /** The live bridge, for components that need direct Y.Text/awareness access. */
 export const $collabBridge = atom<CollabBridge | null>('collabBridge', null)
@@ -27,10 +29,12 @@ export const $collabBridge = atom<CollabBridge | null>('collabBridge', null)
 export function CollabRoot({
   config,
   baseTemplates,
+  templateExports,
   children,
 }: {
   config: CollabConfig
   baseTemplates: TemplateMap
+  templateExports?: TemplateExports
   children: ReactNode
 }) {
   const authEndpoint = async (room?: string) => {
@@ -55,7 +59,9 @@ export function CollabRoot({
       resolveMentionSuggestions={async () => []}
     >
       <RoomProvider id={config.roomId} initialPresence={INITIAL_PRESENCE}>
-        <CollabConnection baseTemplates={baseTemplates}>{children}</CollabConnection>
+        <CollabConnection baseTemplates={baseTemplates} templateExports={templateExports}>
+          {children}
+        </CollabConnection>
       </RoomProvider>
     </LiveblocksProvider>
   )
@@ -63,9 +69,11 @@ export function CollabRoot({
 
 function CollabConnection({
   baseTemplates,
+  templateExports,
   children,
 }: {
   baseTemplates: TemplateMap
+  templateExports?: TemplateExports
   children: ReactNode
 }) {
   const room = useRoom()
@@ -80,7 +88,13 @@ function CollabConnection({
 
     const start = () => {
       if (disposed || bridge) return
-      bridge = connectBridge(provider.getYDoc(), baseTemplates, provider.awareness, room.id)
+      bridge = connectBridge(
+        provider.getYDoc(),
+        baseTemplates,
+        provider.awareness,
+        room.id,
+        templateExports,
+      )
       // y-codemirror renders remote carets from the awareness `user` field.
       const self = room.getSelf()
       ;(provider.awareness as any).setLocalStateField('user', {
@@ -115,13 +129,13 @@ function CollabConnection({
         setBackend(noopBackend)
       }
     }
-  }, [room, baseTemplates])
+  }, [room, baseTemplates, templateExports])
 
   if (!ready) {
     return (
-      <div className="fable-editor flex h-full items-center justify-center bg-default">
-        <div className="text-mono-xs text-quaternary">Connecting to room…</div>
-      </div>
+      <CenteredNotice>
+        <Muted>Connecting to room…</Muted>
+      </CenteredNotice>
     )
   }
   return <>{children}</>

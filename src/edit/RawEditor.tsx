@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { $collabBridge } from './collab/room'
 import CodeEditor from './fields/CodeEditor'
 import { $currentPageId, $pageErrors } from './store'
+import { EditorPane, Muted } from './ui'
 
 /**
  * The page's full serialized source, bound directly to its Y.Text (remote
@@ -13,7 +14,7 @@ export default function RawEditor() {
   const pageId = useValue($currentPageId)
 
   if (!pageId) {
-    return <div className="text-mono-xs text-quaternary italic">No page selected</div>
+    return <Muted className="italic">No page selected</Muted>
   }
   return <PageSource key={pageId} pageId={pageId} />
 }
@@ -30,15 +31,12 @@ function PageSource({ pageId }: { pageId: string }) {
   }, [bridge, pageId])
 
   if (!collab) {
-    return <div className="text-mono-xs text-quaternary italic">No page selected</div>
+    return <Muted className="italic">No page selected</Muted>
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0">
+    <EditorPane error={parseError}>
       <CodeEditor collab={collab} hasError={!!parseError} />
-      {parseError && (
-        <div className="shrink-0 mt-2 text-mono-xs text-destructive">{parseError}</div>
-      )}
-    </div>
+    </EditorPane>
   )
 }

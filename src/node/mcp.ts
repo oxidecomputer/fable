@@ -6,11 +6,21 @@ import type { Browser, Page } from 'playwright-core'
 import * as Y from 'yjs'
 import { z } from 'zod'
 
+import { createTemplateCompiler } from '../collab/compile'
+import { readTemplateSources } from '../collab/doc'
 import * as ops from '../collab/ops'
 import { describeSchema } from '../collab/schema-info'
 import { parsePage } from '../content/markdown'
-import oxideTheme from '../themes/oxide'
-import { createLiveblocks, ensureRoom, fetchDocTemplateSources } from './collab'
+import type { TemplateMap } from '../model'
+import { resolveTemplates } from '../templates/registry'
+import { validatePageFields } from '../templates/validation'
+import type { Theme } from '../theme'
+import {
+  createLiveblocks,
+  ensureRoom,
+  fetchDocTemplateSources,
+  uploadRoomFile,
+} from './collab'
 import { syncDocTemplateScratch } from './doc-template-scan'
 
 /**
@@ -46,15 +56,26 @@ Some markdown
 Speaker notes
 :::
 
+Field values are markdown; a newline renders as a line break (<br> also
+works), and a blank line starts a new paragraph.
+
 Slides render at a fixed 1920×1080; keep text sparse. Field values are
 validated against the template's zod schema in the editor — unknown keys
-surface as schema errors.`
+surface as schema errors.
+
+Image fields accept a URL, a path under the deck's public/ directory
+(e.g. /diagram.png), or a room-stored file ref (fable:<fileId> — upload with
+upload_file). Room-stored files travel with the deck and need no local
+directory, so prefer upload_file over add_asset.`
 
 export type McpServerOptions = {
   secret: string
   /** Deck (room) used when a tool call omits `deck` — from --room or deck.yml. */
   defaultDeck?: string
   userRoot: string
+  theme: Theme
+  /** Uses Vite's module loader, matching the browser's file template imports. */
+  loadFileTemplates: () => Promise<TemplateMap>
   /** URL of the local dev server rendering this deck (for screenshots). */
   baseUrl?: string
   /** Regenerates the stylesheet after the Tailwind scratch dir changes. */
@@ -69,14 +90,41 @@ function errorText(value: string) {
   return { content: [{ type: 'text' as const, text: value }], isError: true as const }
 }
 
-export async function startMcpServer({
+export async function createMcpServer({
   secret,
   defaultDeck,
   userRoot,
   baseUrl,
   reloadCss,
+  theme: deckTheme,
+  loadFileTemplates,
 }: McpServerOptions) {
   const liveblocks = createLiveblocks(secret)
+  const compiler = createTemplateCompiler(deckTheme.templateExports)
+
+  async function templateRegistry(ydoc: Y.Doc) {
+    return resolveTemplates(
+      {
+        theme: deckTheme.templates,
+        files: await loadFileTemplates(),
+        document: readTemplateSources(ydoc),
+      },
+      compiler.compileCached,
+    )
+  }
+
+  // Unlike document commands, the agent adapter accepts only evaluated,
+  // valid modules. This runs top-level code in Node; rendering is verified
+  // separately by screenshot_slide in the browser.
+  function validateTemplateSource(source: string) {
+    try {
+      compiler.compileCached(source)
+    } catch (err) {
+      throw new ops.OpError(
+        `Template evaluation failed: ${err instanceof Error ? err.message : String(err)}`,
+      )
+    }
+  }
 
   /** Every deck-scoped tool takes an optional `deck`; fall back to the default. */
   function resolveDeck(deck?: string): string {
@@ -165,16 +213,20 @@ export async function startMcpServer({
   /** Fetch → mutate → push the diff so connected editors update live. */
   async function withDoc<T>(
     deckId: string,
-    fn: (ydoc: Y.Doc) => T,
+    fn: (ydoc: Y.Doc) => T | Promise<T>,
     opts?: { write?: boolean },
   ) {
     const ydoc = await fetchDoc(deckId, { createIfMissing: opts?.write })
-    const before = Y.encodeStateVector(ydoc)
-    const result = fn(ydoc)
-    if (opts?.write) {
-      await liveblocks.sendYjsBinaryUpdate(deckId, Y.encodeStateAsUpdate(ydoc, before))
+    try {
+      const before = Y.encodeStateVector(ydoc)
+      const result = await fn(ydoc)
+      if (opts?.write) {
+        await liveblocks.sendYjsBinaryUpdate(deckId, Y.encodeStateAsUpdate(ydoc, before))
+      }
+      return result
+    } finally {
+      ydoc.destroy()
     }
-    return result
   }
 
   /**
@@ -205,46 +257,22 @@ export async function startMcpServer({
     }
   }
 
-  /** Validate fields against a theme template's schema (warnings, not errors). */
-  function schemaWarnings(source: string): string[] {
-    let data: Record<string, any>
-    try {
-      data = parsePage(source)
-    } catch {
-      return []
-    }
-    const { template, custom_template: _ct, ...fields } = data
-    const mod = oxideTheme.templates[template]
-    if (!mod?.Schema) return []
-    const unwrapped: any =
-      (mod.Schema as any)._def?.typeName === 'ZodEffects'
-        ? (mod.Schema as any)._def.schema
-        : mod.Schema
-    if (typeof unwrapped?.strict !== 'function') return []
-    const result = unwrapped.strict().safeParse(fields)
-    if (result.success) return []
-    return result.error.issues.map(
-      (i: z.ZodIssue) => `${i.path.join('.') || '(root)'}: ${i.message}`,
-    )
-  }
-
-  function withWarnings(message: string, source: string): string {
-    const warnings = schemaWarnings(source)
+  function withWarnings(
+    message: string,
+    source: string,
+    registry: ReturnType<typeof resolveTemplates>,
+  ): string {
+    const data = parsePage(source)
+    const template = registry.templates[data.template]
+    const warnings = template
+      ? validatePageFields(template, data).map(
+          (issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`,
+        )
+      : [registry.errors[data.template] ?? `Unknown template "${data.template}"`]
     if (warnings.length === 0) return message
     return `${message}\n\nSchema warnings (slide still saved; shown as errors in the editor):\n- ${warnings.join(
       '\n- ',
     )}`
-  }
-
-  async function fileTemplateNames(): Promise<string[]> {
-    try {
-      const files = await fs.readdir(path.join(userRoot, 'templates'))
-      return files
-        .filter((f) => /\.(jsx|tsx)$/.test(f))
-        .map((f) => f.replace(/\.(jsx|tsx)$/, ''))
-    } catch {
-      return []
-    }
   }
 
   const server = new McpServer(
@@ -276,12 +304,14 @@ Workflow:
    tool result alone.
 5. Custom template source compiles in every collaborator's browser. Imports
    are limited to react, zod, and @oxide/fable ({ Markdown, FitText }).
-   create_template/update_template compile-validate and reject bad source.
+   create_template/update_template transpile and evaluate the module in Node
+   to check its exports; keep browser APIs inside components/effects. Use
+   screenshot_slide to verify rendering in the browser.
    Tailwind CSS for custom templates is generated from their source (allow a
    beat before screenshotting a brand-new class).
 
 Theme instructions from the deck's theme author:
-${oxideTheme.aiInstructions ?? 'none'}`,
+${deckTheme.aiInstructions ?? 'none'}`,
     },
   )
 
@@ -352,10 +382,16 @@ ${oxideTheme.aiInstructions ?? 'none'}`,
     },
     async ({ pageId, source, deck }) =>
       run(async () => {
-        await withDoc(resolveDeck(deck), (d) => ops.updateSlide(d, pageId, source), {
-          write: true,
-        })
-        return text(withWarnings(`Updated slide ${pageId}.`, source))
+        const message = await withDoc(
+          resolveDeck(deck),
+          async (d) => {
+            const registry = await templateRegistry(d)
+            ops.updateSlide(d, pageId, source)
+            return withWarnings(`Updated slide ${pageId}.`, source, registry)
+          },
+          { write: true },
+        )
+        return text(message)
       }),
   )
 
@@ -373,14 +409,20 @@ ${oxideTheme.aiInstructions ?? 'none'}`,
     },
     async ({ source, atIndex, filename, deck }) =>
       run(async () => {
-        const created = await withDoc(
+        const message = await withDoc(
           resolveDeck(deck),
-          (d) => ops.createSlide(d, source, { atIndex, filename }),
+          async (d) => {
+            const registry = await templateRegistry(d)
+            const created = ops.createSlide(d, source, { atIndex, filename })
+            return withWarnings(
+              `Created slide ${created.pageId} (${created.filename}).`,
+              source,
+              registry,
+            )
+          },
           { write: true },
         )
-        return text(
-          withWarnings(`Created slide ${created.pageId} (${created.filename}).`, source),
-        )
+        return text(message)
       }),
   )
 
@@ -429,62 +471,47 @@ ${oxideTheme.aiInstructions ?? 'none'}`,
     { deck: DECK_ARG },
     async ({ deck }) =>
       run(async () => {
-        const docNames = await withDoc(resolveDeck(deck), (d) => ops.listDocTemplates(d))
-        const theme = Object.fromEntries(
-          Object.entries(oxideTheme.templates).map(([name, mod]) => [
-            name,
-            {
-              kind: 'theme built-in (read-only)',
-              fields: describeSchema(mod.Schema),
-              example: mod.example,
-            },
-          ]),
+        const registry = await withDoc(resolveDeck(deck), templateRegistry)
+        const result = Object.fromEntries(
+          Object.entries(registry.origins).map(([name, kind]) => {
+            const mod = registry.templates[name]
+            return [
+              name,
+              {
+                kind,
+                editable: kind === 'document',
+                description: mod?.description,
+                fields: describeSchema(mod?.Schema),
+                example: mod?.example,
+                error: registry.errors[name],
+              },
+            ]
+          }),
         )
-        const files = Object.fromEntries(
-          (await fileTemplateNames()).map((name) => [
-            name,
-            { kind: `file template (source at templates/${name}.tsx or .jsx)` },
-          ]),
-        )
-        const doc = Object.fromEntries(
-          docNames.map((name) => [
-            name,
-            { kind: 'custom, doc-stored (editable via update_template)' },
-          ]),
-        )
-        return text(JSON.stringify({ ...theme, ...files, ...doc }, null, 2))
+        return text(JSON.stringify(result, null, 2))
       }),
   )
 
   server.tool(
     'read_template',
-    "Read a template's TSX module source — theme built-ins and custom doc-stored templates. Do this before creating a template based on an existing one.",
+    "Read the active template's TSX source (document > file > theme). Do this before creating a template based on an existing one.",
     { name: z.string().describe('Template name from list_templates'), deck: DECK_ARG },
     async ({ name, deck }) =>
       run(async () => {
-        const deckId = resolveDeck(deck)
-        const docNames = await withDoc(deckId, (d) => ops.listDocTemplates(d))
-        if (docNames.includes(name)) {
-          return text(await withDoc(deckId, (d) => ops.readDocTemplate(d, name)))
-        }
-        const themeSource = oxideTheme.templates[name]?.source
-        if (themeSource) return text(themeSource)
-        for (const ext of ['tsx', 'jsx']) {
-          try {
-            return text(
-              await fs.readFile(path.join(userRoot, 'templates', `${name}.${ext}`), 'utf8'),
-            )
-          } catch {
-            /* try next */
-          }
-        }
+        const source = await withDoc(resolveDeck(deck), async (d) => {
+          // Raw source remains readable even when a document override is broken.
+          const document = readTemplateSources(d)
+          if (Object.hasOwn(document, name)) return document[name]
+          return (await templateRegistry(d)).templates[name]?.source
+        })
+        if (source !== undefined) return text(source)
         return errorText(`No template named "${name}" — use list_templates`)
       }),
   )
 
   server.tool(
     'create_template',
-    'Create a custom (doc-stored) template from TSX module source. Must export `Schema` (zod object) and `Template` ({ data }) => JSX; imports limited to react, zod, @oxide/fable. Compile-validated — fix and retry on errors.',
+    'Create a custom (doc-stored) template from TSX source. Export `Template` ({ data }) => JSX, preferably `Schema` (zod object), and optionally `description` (one-line when-to-use, shown in list_templates); imports limited to react, zod, @oxide/fable. The module is evaluated in Node to check its exports; verify browser rendering with screenshot_slide.',
     {
       name: z.string().describe('PascalCase template name (must be new)'),
       source: z.string().describe('Full TSX module source'),
@@ -493,6 +520,7 @@ ${oxideTheme.aiInstructions ?? 'none'}`,
     async ({ name, source, deck }) =>
       run(async () => {
         const deckId = resolveDeck(deck)
+        validateTemplateSource(source)
         await withDoc(deckId, (d) => ops.createDocTemplate(d, name, source), {
           write: true,
         })
@@ -503,7 +531,7 @@ ${oxideTheme.aiInstructions ?? 'none'}`,
 
   server.tool(
     'update_template',
-    "Replace a custom (doc-stored) template's TSX source. Built-ins are read-only — copy them with create_template instead. Compile-validated.",
+    "Replace a custom (doc-stored) template's TSX source. Built-ins are read-only — copy them with create_template instead. Transpiled and evaluated in Node; verify rendering with screenshot_slide.",
     {
       name: z.string(),
       source: z.string().describe('Full TSX module source'),
@@ -512,6 +540,7 @@ ${oxideTheme.aiInstructions ?? 'none'}`,
     async ({ name, source, deck }) =>
       run(async () => {
         const deckId = resolveDeck(deck)
+        validateTemplateSource(source)
         await withDoc(deckId, (d) => ops.updateDocTemplate(d, name, source), {
           write: true,
         })
@@ -527,11 +556,11 @@ ${oxideTheme.aiInstructions ?? 'none'}`,
     async () =>
       run(async () =>
         text(
-          `Theme: ${oxideTheme.name}\n\nTheme author instructions:\n${
-            oxideTheme.aiInstructions ?? 'none'
+          `Theme: ${deckTheme.name}\n\nTheme author instructions:\n${
+            deckTheme.aiInstructions ?? 'none'
           }\n\n${
-            oxideTheme.designDoc
-              ? `Design document:\n\n${oxideTheme.designDoc}`
+            deckTheme.designDoc
+              ? `Design document:\n\n${deckTheme.designDoc}`
               : 'No design document.'
           }\n\nSlide stylesheet (styles/src/index.css — custom utilities like large-title/body-md/page-padding are defined here; the design system's semantic tokens and Tailwind v4 utilities also exist):\n\n${themeCss}`,
         ),
@@ -561,6 +590,46 @@ ${oxideTheme.aiInstructions ?? 'none'}`,
         await fs.writeFile(path.join(publicDir, name), buf)
         return text(
           `Saved ${name} (${buf.byteLength} bytes) — reference it from slides as /${name}`,
+        )
+      }),
+  )
+
+  server.tool(
+    'upload_file',
+    "Upload an image (or other asset) into the deck's room storage. Returns a fable:<fileId> ref to use as an image field value or inline as ![alt](fable:<fileId>). Files live with the deck — preferred over add_asset.",
+    {
+      filename: z.string().describe('Original filename, e.g. diagram.png'),
+      base64: z.string().describe('File contents, base64-encoded'),
+      mimeType: z
+        .string()
+        .optional()
+        .describe('MIME type; inferred from the filename extension when omitted'),
+      deck: DECK_ARG,
+    },
+    async ({ filename, base64, mimeType, deck }) =>
+      run(async () => {
+        const deckId = resolveDeck(deck)
+        const buf = Buffer.from(base64, 'base64')
+        if (buf.byteLength === 0) return errorText('Empty file')
+        if (buf.byteLength > 50 * 1024 * 1024) return errorText('File exceeds 50 MB')
+        const name = path.basename(filename)
+        const type =
+          mimeType ??
+          {
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            gif: 'image/gif',
+            svg: 'image/svg+xml',
+            webp: 'image/webp',
+            avif: 'image/avif',
+            mp4: 'video/mp4',
+          }[name.split('.').pop()?.toLowerCase() ?? ''] ??
+          'application/octet-stream'
+        await ensureRoom(liveblocks, deckId)
+        const info = await uploadRoomFile(liveblocks, deckId, buf, name, type)
+        return text(
+          `Uploaded ${info.name} (${info.size} bytes) — reference it as fable:${info.id}`,
         )
       }),
   )
@@ -660,16 +729,22 @@ ${oxideTheme.aiInstructions ?? 'none'}`,
       }),
   )
 
-  await server.connect(new StdioServerTransport())
-  console.error(
-    `[fable-mcp] serving decks on stdio${
-      defaultDeck ? ` (default: "${defaultDeck}")` : ''
-    }`,
-  )
-
   return {
+    server,
     async dispose() {
       await browser?.close().catch(() => {})
+      await server.close()
     },
   }
+}
+
+export async function startMcpServer(options: McpServerOptions) {
+  const handle = await createMcpServer(options)
+  await handle.server.connect(new StdioServerTransport())
+  console.error(
+    `[fable-mcp] serving decks on stdio${
+      options.defaultDeck ? ` (default: "${options.defaultDeck}")` : ''
+    }`,
+  )
+  return handle
 }

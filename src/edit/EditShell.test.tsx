@@ -3,9 +3,10 @@ import { type Root, createRoot } from 'react-dom/client'
 import { act } from 'react-dom/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
+import { z } from 'zod'
 
 import { seedDoc } from '../collab/doc'
-import oxideTheme from '../themes/oxide'
+import oxcon26Theme from '../themes/oxcon26'
 import EditShell from './EditShell'
 import { type CollabBridge, connectBridge } from './collab/bridge'
 import { $collabBridge } from './collab/room'
@@ -16,11 +17,6 @@ import { $currentPageId, $pageIds, $pagesById, noopBackend, setBackend } from '.
 vi.mock('@liveblocks/react', () => ({
   useOthers: (selector?: (others: any[]) => any) => (selector ? selector([]) : []),
   useSelf: () => null,
-  useThreads: () => ({ threads: [], error: null, isLoading: false }),
-}))
-vi.mock('@liveblocks/react-ui', () => ({
-  Thread: () => null,
-  Composer: () => null,
 }))
 
 declare global {
@@ -32,7 +28,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const deck = {
   title: 'Shell test',
   pages: [
-    { template: 'Basic', title: 'First', text: 'body one' },
+    { template: 'Text', text: 'body one' },
     { template: 'Cover', title: 'Second' },
   ],
 }
@@ -54,7 +50,23 @@ beforeEach(() => {
   $pageIds.set([])
   ydoc = new Y.Doc()
   seedDoc(ydoc, deck, ['first.md', 'second.md'])
-  bridge = connectBridge(ydoc, oxideTheme.templates, null)
+  // Extra template with a native variant enum, for the variant dropdown tests
+  const Varianted = {
+    Schema: z.object({ variant: z.enum(['light', 'dark']).optional() }),
+    Template: ({ data }: { data: any }) => <div>{data.variant}</div>,
+  }
+  // Extra template with a required field, for the placeholder-injection test
+  const Linked = {
+    Schema: z.object({ url: z.string() }),
+    Template: ({ data }: { data: any }) => <div>{data.url}</div>,
+  }
+  bridge = connectBridge(
+    ydoc,
+    { ...oxcon26Theme.templates, Varianted, Linked },
+    null,
+    undefined,
+    oxcon26Theme.templateExports,
+  )
   setBackend(bridge.backend)
   $collabBridge.set(bridge)
 
@@ -79,14 +91,14 @@ afterEach(() => {
 })
 
 describe('EditShell (collab)', () => {
-  it('renders page rows, tabs, and the schema form', () => {
+  it('renders page rows, tabs, and the template selector', () => {
     expect(container.querySelectorAll('[data-page-row]')).toHaveLength(2)
-    for (const label of ['Content', 'Source', 'Comments', 'Templates']) {
+    for (const label of ['Source', 'Template']) {
       expect(container.textContent).toContain(label)
     }
     // Template select shows the current template
     const select = container.querySelector('select')!
-    expect(select.value).toBe('Basic')
+    expect(select.value).toBe('Text')
   })
 
   it('adding a page through the UI writes to the doc', () => {
@@ -101,19 +113,19 @@ describe('EditShell (collab)', () => {
     await act(async () => {})
     const cm = container.querySelector('.cm-content')
     expect(cm).toBeTruthy()
-    expect(cm!.textContent).toContain('template: Basic')
+    expect(cm!.textContent).toContain('template: Text')
   })
 
   it('templates tab shows the current template read-only, and forks it', async () => {
-    clickText('Templates')
+    clickText('Template')
     await act(async () => {})
-    // Current slide uses Basic (a theme template) — shown read-only with source
-    expect(container.textContent).toContain('Basic')
+    // Current slide uses Text (a theme template) — shown read-only with source
+    expect(container.textContent).toContain('Text')
     expect(container.textContent).toContain('read-only')
     expect(container.querySelector('.cm-content')?.textContent).toContain('Schema')
 
-    // Fork: creates a doc template from Basic's source (imports compile via
-    // the './Util' alias) and points the slide at it
+    // Fork: creates a doc template from Text's source (its @oxide/fable
+    // imports compile via the theme's templateExports) and points the slide at it
     clickText('Edit a copy')
     await act(async () => {})
     expect(ydoc.getMap('templates').has('Custom')).toBe(true)
@@ -122,18 +134,57 @@ describe('EditShell (collab)', () => {
     // No compile error — the forked built-in source compiled
     expect(container.textContent).not.toContain('not available in doc templates')
 
-    // Content tab's selector now shows the fork
-    clickText('Content')
+    // The template selector (above the tabs) now shows the fork
     const select = container.querySelector('select') as HTMLSelectElement
     expect(select.value).toBe('Custom')
   })
 
-  it('shows the parse-error state when a page source is broken', () => {
+  it('switching templates injects placeholders for missing required fields', () => {
+    const select = container.querySelector('select') as HTMLSelectElement
+    act(() => {
+      select.value = 'Linked'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    const id = $currentPageId.get()!
+    const page = $pagesById.get()[id]
+    expect(page.template).toBe('Linked')
+    // Linked requires `url`; the switch wrote a placeholder into the source
+    expect(page.url).toBe('Url')
+    expect(bridge.getPageText(id)!.toString()).toContain('url: Url')
+  })
+
+  it('shows a variant dropdown only for templates with a variant enum', () => {
+    // Text has no variant field — just the template select
+    expect(container.querySelectorAll('select')).toHaveLength(1)
+
+    const select = container.querySelector('select') as HTMLSelectElement
+    act(() => {
+      select.value = 'Varianted'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    const selects = container.querySelectorAll('select')
+    expect(selects).toHaveLength(2)
+    const variant = selects[1] as HTMLSelectElement
+    // Optional enum gets a Default choice (clears the key) plus the options
+    expect([...variant.options].map((o) => o.value)).toEqual(['', 'light', 'dark'])
+
+    act(() => {
+      variant.value = 'dark'
+      variant.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    const id = $currentPageId.get()!
+    expect($pagesById.get()[id].variant).toBe('dark')
+    expect(bridge.getPageText(id)!.toString()).toContain('variant: dark')
+  })
+
+  it('disables template switching when a page source is broken', () => {
     const id = $currentPageId.get()!
     const ytext = bridge.getPageText(id)!
     act(() => {
       ydoc.transact(() => ytext.delete(0, 4))
     })
-    expect(container.textContent).toContain('currently unparseable')
+    const select = container.querySelector('select') as HTMLSelectElement
+    expect(select.disabled).toBe(true)
   })
 })

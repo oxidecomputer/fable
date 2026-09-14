@@ -6,10 +6,10 @@
 > presentation creation. We greatly appreciate feedback, suggestions, and best of all
 > contributions.
 
-Fable is a deck generator that aims to offer an authoring experience as effortless as
-markdown presentation libraries while providing the flexibility to create more varied
-layouts. Pages are Markdown files with YAML frontmatter, and templates use
-[zod](https://zod.dev/) schemas to validate content and surface typos as in-page errors.
+Fable is a centrally hosted, collaborative editor where humans and agents author
+presentations. React templates provide rich layouts for varied content, with custom layouts
+for one-off pages when required. Markdown keeps authoring quick, themes provide a consistent
+design language, and [zod](https://zod.dev/) schemas surface content issues in the editor.
 
 ![CleanShot 2023-06-19 at 19 07 36](https://github.com/oxidecomputer/fable/assets/4020798/f22a3bc9-9954-4846-849c-daa1878b3278)
 
@@ -23,7 +23,7 @@ layouts. Pages are Markdown files with YAML frontmatter, and templates use
 
 ## How It Works
 
-A page is a Markdown file with YAML frontmatter that picks a template:
+A page’s source is Markdown with YAML frontmatter that picks a template:
 
 ```md
 ---
@@ -36,8 +36,8 @@ title: A Journey Through the Cosmos
 - They are **united** in their quest for knowledge and understanding
 ```
 
-Pages are listed in order in `content/deck.yml`, which also names the deck's Liveblocks
-room:
+Pages live in a Liveblocks room. For optional file import/export, `content/deck.yml` lists
+their order and names the room:
 
 ```yaml
 room: my-deck
@@ -57,14 +57,11 @@ AsciiDoc by installing a library and rendering it inside a template.
 
 ## Getting Started
 
-```sh
-npx @oxide/create-fable@latest
-cd my-deck
-npm install
-npm run dev
-```
+Fable is centrally hosted — decks live in rooms on the hosted server, so there's nothing to
+scaffold or deploy per deck. For local development of the package itself, `npm run dev` from
+the repo root runs `fable dev` against the `dev/` deck directory.
 
-A project only needs a `content/` directory (and optionally `templates/` and `public/`).
+A deck directory only needs a `package.json` (and optionally `templates/` and `public/`).
 There's no `vite.config`, `index.html`, or `tailwind.config` — the `fable` CLI handles the
 build pipeline.
 
@@ -92,8 +89,10 @@ export const Template = ({ data }) => (
 )
 ```
 
-Unknown frontmatter keys are caught as schema errors (the schema is parsed in strict mode),
-so typos surface as an in-page error table instead of silently rendering blank content.
+The editor and MCP use the same active template and validation rules: document templates
+override file templates, which override theme templates. Unknown frontmatter keys are
+reported alongside other schema issues; refinements and transforms are preserved during
+validation.
 
 ### Template Utilities
 
@@ -132,8 +131,8 @@ Import it from any custom template (`import '/styles.css'`) and the overrides ta
 ## Multiplayer
 
 The live deck is a [Liveblocks](https://liveblocks.io/) room (a Yjs document); the files in
-`content/` are its import/export format. Editing — the sidebar, schema forms, the raw source
-tab, comments, presence, MCP agents — always happens against the room, so any number of
+`content/` are its import/export format. Editing — the sidebar, canvas fields, the raw
+source tab, presence, MCP agents — always happens against the room, so any number of
 collaborators can edit at once and undo only reverts your own changes.
 
 For local dev, put your secret key in a `.env` file next to `content/` (or export it):
@@ -164,7 +163,8 @@ fable push [--force]   Seed the room from content/ (refuses to overwrite unless 
 fable pull             Export the room back into content/ as clean markdown
 ```
 
-Without a secret key, `fable dev` serves the deck in present mode from the files.
+The app requires a backend for editing and presenting. Configure `LIVEBLOCKS_SECRET_KEY` for
+the local backend or `VITE_FABLE_API_URL` for a hosted server.
 
 ### Doc-stored templates
 
@@ -177,11 +177,16 @@ dir that Tailwind scans, kept in sync by the dev server, the MCP server, and (wh
 `LIVEBLOCKS_SECRET_KEY` is available) production builds. Note that templates run as code in
 every collaborator's browser — only share rooms with people you trust.
 
+The core template API is shared by file imports and document templates. Themes can provide
+additional imports through `Theme.templateExports`; OXCON supplies its grid and layout
+primitives this way. The compiler keeps its cache scoped to that runtime. A broken document
+override reports an error rather than silently falling back to a theme or file layout.
+
 ### AI agents (MCP)
 
 `fable mcp` runs an [MCP](https://modelcontextprotocol.io/) server over stdio that exposes
 the deck's live room to local agents like Claude Code or Codex. Register it from the deck
-directory (the starter ships a `.mcp.json` that Claude Code picks up automatically):
+directory (`dev/` ships a `.mcp.json` that Claude Code picks up automatically):
 
 ```sh
 claude mcp add fable -- npx fable mcp
@@ -204,8 +209,10 @@ screenshot the deployed deck instead — it's connected to the same room and sho
 what collaborators see in production (built templates rather than your working tree).
 Guardrails keep it idiomatic: slide sources must parse, field values are checked against the
 template's zod schema (warnings reported back to the agent), and template source is
-compile-validated before saving — the agent is told to prefer existing templates and fork
-from the closest one when a new layout is needed.
+transpiled and evaluated in Node before saving to check its imports and exports. Keep
+browser APIs inside components or effects; screenshots verify rendering separately in the
+browser. The agent is told to prefer existing templates and fork from the closest one when a
+new layout is needed.
 
 Theme authors can steer agents via `aiInstructions` on the `Theme` object — it's included in
 the MCP server's instructions. The Oxide theme, for example, describes when to reach for

@@ -9,7 +9,7 @@
     "./collab": "./src/collab/index.ts",
     "./node": "./src/node/collab.ts",
     "./node/deck-files": "./src/node/deck-files.ts",
-    "./themes/oxide": "./src/themes/oxide/index.ts"
+    "./themes/oxcon26": "./src/themes/oxcon26/index.ts"
   },
   "workspaces": [
     "server"
@@ -18,8 +18,8 @@
     "fable": "bin/fable.js"
   },
   "scripts": {
-    "dev": "npm run dev --prefix starter/main",
-    "build": "npm run build --prefix starter/main",
+    "dev": "npm run dev --prefix dev",
+    "build": "npm run build --prefix dev",
     "fmt": "prettier --write --ignore-path ./.gitignore  .",
     "fmt:check": "prettier --check --ignore-path ./.gitignore . ",
     "tsc": "tsc",
@@ -34,10 +34,10 @@
     "@liveblocks/client": "^3.24.1",
     "@liveblocks/node": "^3.24.1",
     "@liveblocks/react": "^3.24.1",
-    "@liveblocks/react-ui": "^3.24.1",
     "@liveblocks/yjs": "^3.24.1",
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "@oxide/design-system": "^6.6.1",
+    "@oxide/ascii-shader": "^0.1.0",
+    "@oxide/design-system": "6.7.0-canary.8a33f9c",
     "@tailwindcss/vite": "^4.3.0",
     "@tldraw/state": "^2.0.2",
     "@tldraw/state-react": "^2.0.2",

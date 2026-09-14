@@ -227,6 +227,11 @@ async function mcp() {
   const { startMcpServer } = await vite.ssrLoadModule(
     path.join(packageRoot, 'src', 'node', 'mcp.ts'),
   )
+  const { loadTheme, loadFileTemplates } = await vite.ssrLoadModule(
+    path.join(packageRoot, 'src', 'node', 'templates.ts'),
+  )
+  const loadModule = (filename) => vite.ssrLoadModule(filename)
+  const theme = await loadTheme(process.env.FABLE_THEME ?? 'oxcon26', loadModule)
   // Tailwind doesn't notice new scratch files on its own — the MCP server
   // calls this after template changes so screenshots render with fresh CSS.
   const reloadCss = async () => {
@@ -240,6 +245,8 @@ async function mcp() {
     userRoot,
     baseUrl,
     reloadCss,
+    theme,
+    loadFileTemplates: () => loadFileTemplates(userRoot, loadModule),
   })
   // Exit when the MCP client disconnects.
   process.stdin.on('close', async () => {

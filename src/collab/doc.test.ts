@@ -112,6 +112,15 @@ describe('applyTextDiff', () => {
   })
 })
 
+describe('parsePage', () => {
+  it('treats a bare frontmatter key as an empty string, not a missing field', () => {
+    const page = parsePage('---\ntemplate: Basic\ntitle:\n---\n')
+    expect(page.title).toBe('')
+    // Round-trips: the key stays present in the serialized source
+    expect(parsePage(serializePage(page))).toEqual(page)
+  })
+})
+
 describe('ensureFilenames', () => {
   it('fills gaps and dedupes', () => {
     expect(ensureFilenames(['a.md', '', 'a.md', 'b.md'])).toEqual([

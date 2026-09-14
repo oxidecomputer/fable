@@ -8,6 +8,7 @@ import {
   isDocEmpty,
   readDeck,
   readDeckSources,
+  readTemplateSources,
   seedDoc,
 } from '../collab/doc'
 
@@ -144,18 +145,53 @@ export async function listDecks(
   )
 }
 
+export type RoomFileInfo = { id: string; name: string; size: number; mimeType: string }
+
+/** Upload bytes as a room-stored file; returns its metadata (id = `fl_…`). */
+export async function uploadRoomFile(
+  liveblocks: Liveblocks,
+  roomId: string,
+  bytes: Uint8Array,
+  name: string,
+  mimeType: string,
+): Promise<RoomFileInfo> {
+  const file = new File([bytes as BlobPart], name, { type: mimeType })
+  const uploaded = await liveblocks.uploadFile({ roomId, file })
+  const { id, size } = uploaded.data
+  return { id, name: uploaded.data.name, size, mimeType: uploaded.data.mimeType }
+}
+
+// Presigned download URLs live for ~an hour; cache them so slide renders
+// don't hit the Liveblocks REST API per <img>.
+const fileUrlCache = new Map<string, { url: string; expires: number }>()
+
+/** A presigned download URL for a room file, cached until shortly before expiry. */
+export async function getRoomFileUrl(
+  liveblocks: Liveblocks,
+  roomId: string,
+  fileId: string,
+): Promise<string> {
+  const key = `${roomId}/${fileId}`
+  const hit = fileUrlCache.get(key)
+  if (hit && hit.expires > Date.now()) return hit.url
+  const { url, expiresAt } = await liveblocks.getFileUrl({ roomId, file: fileId })
+  const expires = new Date(expiresAt).getTime() - 60_000
+  if (fileUrlCache.size > 500) fileUrlCache.clear()
+  fileUrlCache.set(key, { url, expires })
+  return url
+}
+
 /** Read a room's doc-stored template sources, keyed by template name. */
 export async function fetchDocTemplateSources(
   liveblocks: Liveblocks,
   roomId: string,
 ): Promise<Record<string, string>> {
   const ydoc = await fetchDoc(liveblocks, roomId)
-  const out: Record<string, string> = {}
-  for (const [name, tmap] of ydoc.getMap<Y.Map<any>>('templates').entries()) {
-    const source = (tmap.get('source') as Y.Text | undefined)?.toString()
-    if (typeof source === 'string') out[name] = source
+  try {
+    return readTemplateSources(ydoc)
+  } finally {
+    ydoc.destroy()
   }
-  return out
 }
 
 /** Read a room's deck back as parsed content + filenames. Throws on unparseable pages. */

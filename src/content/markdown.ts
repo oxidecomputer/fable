@@ -1,8 +1,9 @@
 import YAML from 'yaml'
 
+import type { PageData } from '../model'
 import { LONG_FORM_FIELDS } from './long-form'
 
-export type PageData = Record<string, any> & { template: string }
+export type { PageData } from '../model'
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
 const DIRECTIVE_OPEN_RE = /^:::\s+(\S+)\s*$/
@@ -16,6 +17,13 @@ export function parsePage(text: string): PageData {
 
   if (typeof frontmatter !== 'object' || Array.isArray(frontmatter)) {
     throw new Error('Frontmatter must be a YAML object')
+  }
+
+  // A bare `key:` parses as YAML null; treat it as an empty string. A present
+  // key with no text is deliberate emptiness, not a missing (undefined) field,
+  // so it shouldn't trip required-string validation.
+  for (const [k, v] of Object.entries(frontmatter)) {
+    if (v === null) frontmatter[k] = ''
   }
 
   const lines = body.split(/\r?\n/)

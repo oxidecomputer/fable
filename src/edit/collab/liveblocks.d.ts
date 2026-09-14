@@ -2,7 +2,7 @@ declare global {
   interface Liveblocks {
     Presence: {
       pageId: string | null
-      cursor: { x: number; y: number } | null
+      editingField: string | null
     }
     UserMeta: {
       id: string
@@ -11,11 +11,6 @@ declare global {
         color: string
         avatar?: string
       }
-    }
-    ThreadMetadata: {
-      pageId: string
-      x?: number
-      y?: number
     }
   }
 }

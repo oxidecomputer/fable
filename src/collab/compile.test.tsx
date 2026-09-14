@@ -2,7 +2,9 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { compileTemplate } from './compile'
+import { StageContext } from '../stage'
+import { compileTemplate, createTemplateCompiler } from './compile'
+import { transpileTemplate } from './transpile'
 
 describe('compileTemplate', () => {
   it('compiles a TSX module with Schema + Template', () => {
@@ -57,5 +59,39 @@ export function Template({ data }) {
 
   it('requires a Template export', () => {
     expect(() => compileTemplate('export const x = 1')).toThrow(/Template/)
+  })
+
+  it('requires Schema to be a Zod schema when provided', () => {
+    expect(() =>
+      compileTemplate('export const Schema = {}; export function Template() {}'),
+    ).toThrow(/Schema.*Zod/)
+  })
+
+  it('provides the core stage API to document templates', () => {
+    const mod = compileTemplate(`import { useStage } from '@oxide/fable'
+      export function Template() { return <div>{useStage().mode}</div> }`)
+    const html = renderToStaticMarkup(
+      <StageContext.Provider value={{ mode: 'thumbnail', scale: 0.1 }}>
+        <mod.Template data={{}} />
+      </StageContext.Provider>,
+    )
+    expect(html).toContain('thumbnail')
+  })
+
+  it('scopes cached modules to the theme runtime', () => {
+    const source = `import { label } from '@oxide/fable'
+      export function Template() { return <div>{label}</div> }`
+    const first = createTemplateCompiler({ label: 'First theme' })
+    const second = createTemplateCompiler({ label: 'Second theme' })
+    const A = first.compileCached(source).Template
+    const B = second.compileCached(source).Template
+    expect(renderToStaticMarkup(<A data={{}} />)).toContain('First theme')
+    expect(renderToStaticMarkup(<B data={{}} />)).toContain('Second theme')
+  })
+
+  it('separates syntax-only transpilation from module evaluation', () => {
+    const source = 'throw new Error("Top-level code ran"); export function Template() {}'
+    expect(() => transpileTemplate(source)).not.toThrow()
+    expect(() => compileTemplate(source)).toThrow('Top-level code ran')
   })
 })

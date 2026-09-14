@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
 
@@ -49,6 +48,28 @@ describe('slide ops', () => {
     expect(() => ops.readSlide(ydoc, 'missing-id')).toThrow(/list_slides/)
   })
 
+  it('patches current fields and preserves unrelated changes', () => {
+    const id = ops.listSlides(ydoc).slides[0].pageId
+    ops.patchSlide(ydoc, id, { text: 'Another collaborator changed this' })
+    ops.patchSlide(ydoc, id, { title: 'Renamed' })
+    expect(readDeck(ydoc).content.pages[0]).toEqual({
+      template: 'Basic',
+      title: 'Renamed',
+      text: 'Another collaborator changed this',
+    })
+    ops.patchSlide(ydoc, id, { text: '' })
+    expect(readDeck(ydoc).content.pages[0].text).toBeUndefined()
+  })
+
+  it('refuses to patch unfinished source without changing it', () => {
+    const id = ops.listSlides(ydoc).slides[0].pageId
+    const source = ydoc.getMap<Y.Map<any>>('pages').get(id)!.get('source') as Y.Text
+    source.delete(0, 4)
+    const draft = source.toString()
+    expect(() => ops.patchSlide(ydoc, id, { title: 'Renamed' })).toThrow(ops.OpError)
+    expect(source.toString()).toBe(draft)
+  })
+
   it('createSlide appends or inserts, deriving filenames from titles', () => {
     const created = ops.createSlide(ydoc, '---\ntemplate: Basic\ntitle: New Slide!\n---\n')
     expect(created.filename).toBe('new-slide.md')
@@ -96,22 +117,26 @@ export const Schema = z.object({ title: z.string() })
 export function Template({ data }) { return <h1>{data.title}</h1> }
 `
 
-  it('create/read/update/delete a doc template with compile validation', () => {
-    expect(() => ops.createDocTemplate(ydoc, 'Broken', 'export const {')).toThrow(
-      /Compile failed/,
-    )
+  it('create/read/update/delete a doc template', () => {
     ops.createDocTemplate(ydoc, 'Mine', GOOD)
     expect(ops.listDocTemplates(ydoc)).toEqual(['Mine'])
     expect(ops.readDocTemplate(ydoc, 'Mine')).toBe(GOOD)
     expect(() => ops.createDocTemplate(ydoc, 'Mine', GOOD)).toThrow(/already exists/)
 
-    expect(() => ops.updateDocTemplate(ydoc, 'Mine', 'nope {')).toThrow(/Compile failed/)
     const v2 = GOOD.replace('h1', 'h2')
     ops.updateDocTemplate(ydoc, 'Mine', v2)
     expect(ops.readDocTemplate(ydoc, 'Mine')).toBe(v2)
 
     ops.deleteDocTemplate(ydoc, 'Mine')
     expect(ops.listDocTemplates(ydoc)).toEqual([])
+  })
+
+  it('stores unfinished drafts without evaluating template code', () => {
+    ops.createDocTemplate(ydoc, 'Draft', 'export const {')
+    expect(ops.readDocTemplate(ydoc, 'Draft')).toBe('export const {')
+    const browserSource = 'window.templateLoaded = true; export function Template() {}'
+    ops.updateDocTemplate(ydoc, 'Draft', browserSource)
+    expect(ops.readDocTemplate(ydoc, 'Draft')).toBe(browserSource)
   })
 
   it('updateDocTemplate refuses built-ins by name', () => {

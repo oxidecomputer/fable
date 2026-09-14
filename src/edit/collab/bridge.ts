@@ -1,19 +1,19 @@
 import { transact } from '@tldraw/state'
-import { nanoid } from 'nanoid'
 import * as Y from 'yjs'
 
-import type { TemplateMap } from '../../Page'
-import { compileTemplateCached } from '../../collab/compile'
+import { createTemplateCompiler } from '../../collab/compile'
 import {
   LOCAL_ORIGIN,
-  applyTextDiff,
   getMetaMap,
   getOrderArray,
   getPagesMap,
   getTemplatesMap,
-  makePageMap,
+  readTemplateSources,
 } from '../../collab/doc'
+import * as commands from '../../collab/ops'
 import { parsePage, serializePage } from '../../content/markdown'
+import type { DeckMeta, PageData, TemplateExports, TemplateMap } from '../../model'
+import { resolveTemplates } from '../../templates/registry'
 import {
   $currentIndex,
   $currentPageId,
@@ -24,9 +24,6 @@ import {
   $pagesById,
   $templates,
   type Backend,
-  type PageData,
-  mergePatch,
-  nextPageFilename,
 } from '../store'
 import { setUndoManager } from '../undo'
 import { $docTemplateErrors, $docTemplateNames } from './templates-store'
@@ -55,18 +52,20 @@ export function connectBridge(
   baseTemplates: TemplateMap,
   awareness: unknown,
   deckId?: string,
+  templateExports?: TemplateExports,
 ): CollabBridge {
   const meta = getMetaMap(ydoc)
   const order = getOrderArray(ydoc)
   const pages = getPagesMap(ydoc)
   const templates = getTemplatesMap(ydoc)
+  const compiler = createTemplateCompiler(templateExports)
 
   // pageId -> last source string we synced (parse errors included, so we
   // don't reparse unchanged bad sources).
   const sourceCache = new Map<string, string>()
 
   function syncMeta() {
-    const next: { title?: string; config?: { page_numbers?: boolean } } = {}
+    const next: DeckMeta = {}
     const title = meta.get('title')
     if (typeof title === 'string') next.title = title
     const config = meta.get('config')
@@ -141,23 +140,14 @@ export function connectBridge(
   }
 
   function syncTemplates() {
-    const compiled: TemplateMap = {}
-    const errors: Record<string, string> = {}
-    const names: string[] = []
-    const sources: Record<string, string> = {}
-    for (const [name, tmap] of templates.entries()) {
-      names.push(name)
-      const source = (tmap.get('source') as Y.Text | undefined)?.toString() ?? ''
-      sources[name] = source
-      try {
-        compiled[name] = compileTemplateCached(source)
-      } catch (err) {
-        errors[name] = err instanceof Error ? err.message : String(err)
-      }
-    }
-    $templates.set({ ...baseTemplates, ...compiled })
-    $docTemplateErrors.set(errors)
-    $docTemplateNames.set(names.sort())
+    const sources = readTemplateSources(ydoc)
+    const resolved = resolveTemplates(
+      { theme: baseTemplates, document: sources },
+      compiler.compileCached,
+    )
+    $templates.set(resolved.templates)
+    $docTemplateErrors.set(resolved.errors)
+    $docTemplateNames.set(Object.keys(sources).sort())
     pushTemplateSourcesToDev(sources)
   }
 
@@ -191,78 +181,45 @@ export function connectBridge(
   })
   setUndoManager(undoManager)
 
-  function writePageSource(id: string, next: PageData) {
-    const pmap = pages.get(id)
-    const ytext = pmap?.get('source') as Y.Text | undefined
-    if (!ytext) return
-    const prev = ytext.toString()
-    const nextSource = serializePage(next)
-    ydoc.transact(() => applyTextDiff(ytext, prev, nextSource), LOCAL_ORIGIN)
-  }
-
-  function currentPageData(id: string): PageData | undefined {
-    const pmap = pages.get(id)
-    const ytext = pmap?.get('source') as Y.Text | undefined
-    if (!ytext) return undefined
-    try {
-      return parsePage(ytext.toString())
-    } catch {
-      // Source is transiently unparseable — fall back to the last good parse.
-      return $pagesById.get()[id]
-    }
+  function canEditPage(id: string): boolean {
+    // The read layer already exposes parse errors. Keep displaying its cached
+    // content, but never serialize that cache over an unfinished source edit.
+    return pages.has(id) && !$pageErrors.get()[id]
   }
 
   const backend: Backend = {
     updatePage(id, patch) {
-      const current = currentPageData(id)
-      if (!current) return
-      writePageSource(id, mergePatch(current, patch))
+      if (canEditPage(id)) commands.patchSlide(ydoc, id, patch)
     },
 
     setPage(id, next) {
-      writePageSource(id, next)
+      if (canEditPage(id)) commands.updateSlide(ydoc, id, serializePage(next))
     },
 
-    addPage(templateName) {
+    addPage(page, index) {
       undoManager.stopCapturing()
-      const id = nanoid()
-      const filename = nextPageFilename(Object.values($filenamesById.get()))
-      ydoc.transact(() => {
-        pages.set(id, makePageMap(serializePage({ template: templateName }), filename))
-        order.push([id])
-      }, LOCAL_ORIGIN)
-      $currentPageId.set(id)
+      const { pageId } = commands.createSlide(ydoc, serializePage(page), { atIndex: index })
+      $currentPageId.set(pageId)
     },
 
     removePage(id) {
       undoManager.stopCapturing()
-      ydoc.transact(() => {
-        const i = order.toArray().indexOf(id)
-        if (i !== -1) order.delete(i, 1)
-        if (pages.has(id)) pages.delete(id)
-      }, LOCAL_ORIGIN)
+      if (pages.has(id)) commands.deleteSlide(ydoc, id)
     },
 
     movePage(from, to) {
       undoManager.stopCapturing()
-      ydoc.transact(() => {
-        if (from < 0 || from >= order.length || to < 0 || to >= order.length) return
-        const id = order.get(from)
-        order.delete(from, 1)
-        order.insert(to, [id])
-      }, LOCAL_ORIGIN)
+      const id = $pageIds.get()[from]
+      if (id !== undefined) commands.moveSlide(ydoc, id, to)
     },
 
     setTitle(title) {
-      ydoc.transact(() => {
-        if (title) meta.set('title', title)
-        else meta.delete('title')
-      }, LOCAL_ORIGIN)
+      commands.setDeckTitle(ydoc, title)
     },
 
-    switchTemplate(id, newTemplate) {
+    switchTemplate(id, newTemplate, patch) {
       undoManager.stopCapturing()
-      backend.updatePage(id, { template: newTemplate })
+      backend.updatePage(id, { ...patch, template: newTemplate })
     },
   }
 
@@ -282,31 +239,21 @@ export function connectBridge(
 
     addTemplate(name, source) {
       undoManager.stopCapturing()
-      ydoc.transact(() => {
-        if (templates.has(name)) return
-        const tmap = new Y.Map<any>()
-        const ytext = new Y.Text()
-        ytext.insert(0, source)
-        tmap.set('source', ytext)
-        templates.set(name, tmap)
-      }, LOCAL_ORIGIN)
+      if (!templates.has(name)) commands.createDocTemplate(ydoc, name, source)
     },
 
     setTemplateSource(name, source) {
-      const ytext = templates.get(name)?.get('source') as Y.Text | undefined
-      if (!ytext) return
       undoManager.stopCapturing()
-      ydoc.transact(() => applyTextDiff(ytext, ytext.toString(), source), LOCAL_ORIGIN)
+      if (templates.has(name)) commands.updateDocTemplate(ydoc, name, source)
     },
 
     removeTemplate(name) {
       undoManager.stopCapturing()
-      ydoc.transact(() => {
-        if (templates.has(name)) templates.delete(name)
-      }, LOCAL_ORIGIN)
+      if (templates.has(name)) commands.deleteDocTemplate(ydoc, name)
     },
 
     dispose() {
+      if (scratchTimer) clearTimeout(scratchTimer)
       setUndoManager(null)
       undoManager.destroy()
       meta.unobserve(onMeta)

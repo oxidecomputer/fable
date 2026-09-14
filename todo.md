@@ -1,0 +1,8 @@
+- [] Auto text sizing
+- [] Text footnotes
+- [] Slides / powerpoint import
+- [] Branded charts and tables
+- [] Stop markdown body jumping when editing
+- [] tldraw stage editor?
+- [] Right click context menu
+- [] Add grid overlay, make content grid a first-party feature

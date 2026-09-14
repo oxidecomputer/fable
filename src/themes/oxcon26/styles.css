@@ -1,0 +1,207 @@
+/* OXCON 26 deck type ramp, from the Figma deck/* text styles. Every line
+ * height is a whole multiple of the dual grid's cell height (1080 / 22 rows ≈
+ * 49.09px — the Figma values are the same multiples rounded), so flowed text
+ * keeps the grid's vertical rhythm. The plugin @imports this file into the
+ * package stylesheet when FABLE_THEME=oxcon26 (not imported from the theme
+ * module — Tailwind must see the var() references below, or it tree-shakes
+ * the design system's @theme variables they resolve to).
+ *
+ * Paragraph spacing targets direct children so a class can wrap the Markdown
+ * component: `> :not(:last-child)` outranks .markdown's :where()-based
+ * space-y utility. */
+
+:root {
+  --grid-cell-w: calc(1920px / 77);
+  --grid-cell-h: calc(1080px / 22);
+  /* Tone-scoped paint values for non-text marks (hairlines, the pie);
+   * .oxcon-light overrides them below. */
+  --deck-hairline: var(--color-neutral-300);
+  --deck-pie-track: var(--color-neutral-300);
+  --deck-pie-fill: var(--color-green-1200);
+}
+
+.deck-mono-sm,
+.deck-mono-md {
+  font-family: 'GT America Mono', monospace;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.deck-mono-sm {
+  font-size: 20px;
+  line-height: calc(var(--grid-cell-h) / 2);
+}
+
+.deck-mono-md {
+  font-size: 30px;
+  line-height: var(--grid-cell-h);
+}
+
+.deck-mono-sm > :not(:last-child),
+.deck-mono-md > :not(:last-child) {
+  margin-block-end: 0;
+}
+
+.deck-text-xs,
+.deck-text-sm,
+.deck-text-md,
+.deck-text-lg,
+.deck-display-sm,
+.deck-display-md,
+.deck-display-lg {
+  font-family: 'SuisseIntl', sans-serif;
+  font-weight: 400;
+}
+
+.deck-text-xs {
+  font-size: 20px;
+  line-height: calc(var(--grid-cell-h) / 2);
+  letter-spacing: -0.015em;
+}
+
+.deck-text-sm {
+  font-size: 28px;
+  line-height: calc(var(--grid-cell-h) * 2 / 3);
+  letter-spacing: -0.015em;
+}
+
+.deck-text-md {
+  font-size: 40px;
+  line-height: var(--grid-cell-h);
+  letter-spacing: -0.015em;
+}
+
+.deck-text-lg {
+  font-size: 54px;
+  line-height: calc(var(--grid-cell-h) * 4 / 3);
+  letter-spacing: -0.02em;
+}
+
+.deck-display-sm {
+  font-size: 90px;
+  line-height: calc(var(--grid-cell-h) * 2);
+  letter-spacing: -0.03em;
+}
+
+.deck-display-md {
+  font-size: 135px;
+  line-height: calc(var(--grid-cell-h) * 3);
+  letter-spacing: -0.03em;
+}
+
+.deck-display-lg {
+  font-size: 245px;
+  line-height: calc(var(--grid-cell-h) * 5);
+  letter-spacing: -0.04em;
+}
+
+/* Paragraph spacing is a markdown concern: these hit the paragraphs whether
+ * the deck class sits on the Markdown component itself or on a wrapper (e.g.
+ * DeckText) around it, without spacing non-markdown block children. */
+:is(.markdown.deck-text-xs, .deck-text-xs .markdown) > :not(:last-child),
+:is(.markdown.deck-display-md, .deck-display-md .markdown) > :not(:last-child),
+:is(.markdown.deck-display-lg, .deck-display-lg .markdown) > :not(:last-child) {
+  margin-block-end: 0;
+}
+
+:is(.markdown.deck-text-sm, .deck-text-sm .markdown) > :not(:last-child),
+:is(.markdown.deck-text-md, .deck-text-md .markdown) > :not(:last-child),
+:is(.markdown.deck-text-lg, .deck-text-lg .markdown) > :not(:last-child) {
+  margin-block-end: calc(var(--grid-cell-h) / 2);
+}
+
+:is(.markdown.deck-display-sm, .deck-display-sm .markdown) > :not(:last-child) {
+  /* Figma sets 45px here (half the 90px font size), deliberately off-grid. */
+  margin-block-end: 45px;
+}
+
+/* Markdown bullet lists (TitleText): preflight strips markers, restore them;
+ * nested lists indent a step. */
+.markdown ul {
+  list-style: disc;
+  padding-inline-start: 0.85em;
+}
+.markdown ul ul {
+  padding-inline-start: 1.2em;
+}
+
+/* Dark slides: **strong** raises to near-white at the body weight (the
+ * light-tone rule below overrides it on .oxcon-light). */
+.markdown strong {
+  font-weight: 400;
+  color: var(--color-neutral-1200);
+}
+
+/* Light slides (Slide tone="light"): neutral surface, grey body text, strong
+ * spans in medium weight near-black instead of the dark theme's semibold
+ * text-raise. */
+/* Literal values: the design system is dark-first and its neutral scale is
+ * remapped for dark surfaces (neutral-100 is near-black), so light slides
+ * can't lean on the tokens. */
+.oxcon-light {
+  background: #e4e4e5;
+  color: var(--color-neutral-500);
+  --deck-hairline: var(--color-neutral-600);
+  --deck-pie-track: var(--color-neutral-700);
+  --deck-pie-fill: var(--color-green-800);
+}
+.oxcon-light strong {
+  font-weight: 400;
+  color: var(--color-neutral-50);
+}
+
+/* Tone-aware text roles: Slide puts .oxcon-light on the root for
+ * tone="light", so templates write one class per element instead of a
+ * dark ? … : … ternary. Dark values are the design tokens; light values are
+ * literals for the same reason as above. .oxcon-header is HeaderBand's
+ * default color; deck-strong = titles/stats, deck-muted = body/captions,
+ * deck-faint = footnote numbers and similar asides, deck-accent = the green
+ * that falls back to near-black on light. */
+.oxcon-header {
+  color: var(--content-tertiary);
+}
+.deck-strong {
+  color: var(--content-raise);
+}
+.deck-muted {
+  color: var(--content-secondary);
+}
+.deck-faint {
+  color: var(--content-tertiary);
+}
+.deck-accent {
+  color: var(--color-green-1200);
+}
+.oxcon-light .oxcon-header {
+  color: var(--color-neutral-500);
+}
+.oxcon-light .deck-strong {
+  color: var(--color-neutral-50);
+}
+.oxcon-light .deck-muted {
+  color: var(--color-neutral-400);
+}
+.oxcon-light .deck-faint {
+  color: var(--color-neutral-600);
+}
+.oxcon-light .deck-accent {
+  color: var(--color-neutral-50);
+}
+
+/* Quote marks (Quote template): raised, smaller, dimmed; the opening mark
+ * hangs into the margin via the first paragraph's negative indent. */
+/*.oxcon-quote .markdown > p:first-child::before,
+.oxcon-quote .markdown > p:last-child::after {
+  font-size: 0.5em;
+  vertical-align: 0.55em;
+  opacity: 0.6;
+}
+.oxcon-quote .markdown > p:first-child::before {
+  content: '“';
+  margin-right: 0.06em;
+}
+.oxcon-quote .markdown > p:last-child::after {
+  content: '”';
+  margin-left: 0.06em;
+}*/

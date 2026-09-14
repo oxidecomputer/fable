@@ -14,11 +14,14 @@ import {
   $title,
   type PageData,
   addPage,
+  copyPage,
   movePage,
+  pastePage,
   removePage,
   setCurrentIndex,
   setTitle,
 } from './store'
+import { Button, Input } from './ui'
 
 const THUMB_WIDTH = 220
 const THUMB_HEIGHT = THUMB_WIDTH * (9 / 16)
@@ -44,6 +47,7 @@ const PageRow = memo(function PageRow({
   const ref = useRef<HTMLDivElement>(null)
   const overIndex = useValue($overIndex)
   const dragIndex = useValue($dragIndex)
+  const total = useValue($pageIds).length
   const isOver = overIndex === index && dragIndex !== null && dragIndex !== index
 
   useEffect(() => {
@@ -58,6 +62,11 @@ const PageRow = memo(function PageRow({
     if (e.key === 'Backspace' || e.key === 'Delete') {
       e.preventDefault()
       removePage(index)
+    } else if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+      copyPage(index)
+    } else if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+      e.preventDefault()
+      pastePage(index)
     }
   }
 
@@ -118,7 +127,14 @@ const PageRow = memo(function PageRow({
           style={{ width: THUMB_WIDTH, height: THUMB_HEIGHT }}
         >
           <div className="pointer-events-none">
-            <Page data={page} scale={THUMB_SCALE} templates={templates} pageNumber={null} />
+            <Page
+              data={page}
+              scale={THUMB_SCALE}
+              mode="thumbnail"
+              templates={templates}
+              pageNumber={null}
+              pageInfo={{ number: index + 1, total }}
+            />
           </div>
           <PagePresenceDots pageId={pageId} />
         </div>
@@ -140,21 +156,23 @@ function Header() {
   return (
     <div className="sticky top-0 bg-raise z-10 border-b border-default">
       <div className="px-3 pt-3 pb-2">
-        <input
+        <Input
+          variant="ghost"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Untitled deck"
-          className="w-full bg-transparent text-sans-sm font-semibold text-default placeholder:text-quaternary outline-none focus:bg-default rounded px-1 py-0.5 -mx-1"
+          className="w-full -mx-1"
         />
       </div>
       <div className="px-3 pb-3 flex gap-1">
-        <button
-          type="button"
-          onClick={() => addPage(templateNames[0] ?? 'Basic')}
-          className="flex-1 text-mono-xs text-default bg-default hover:bg-hover border border-default rounded px-2 py-1.5"
+        <Button
+          onClick={() =>
+            addPage(templateNames.includes('Text') ? 'Text' : templateNames[0] ?? 'Text')
+          }
+          className="flex-1"
         >
           New slide
-        </button>
+        </Button>
       </div>
     </div>
   )
