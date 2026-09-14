@@ -114,7 +114,9 @@ export function EditorPane({
     <div className="flex flex-1 flex-col min-h-0">
       {children}
       {error && (
-        <ErrorText className="shrink-0 mt-2 whitespace-pre-wrap">{error}</ErrorText>
+        <ErrorText className="shrink-0 p-3 border-t bg-raise text-mono-code normal-case! whitespace-pre-wrap">
+          {error}
+        </ErrorText>
       )}
     </div>
   )

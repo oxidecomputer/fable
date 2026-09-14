@@ -1,6 +1,7 @@
 import { javascript } from '@codemirror/lang-javascript'
 import { markdown } from '@codemirror/lang-markdown'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import type { Extension } from '@codemirror/state'
 import { EditorView, keymap } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
 import CodeMirror from '@uiw/react-codemirror'
@@ -36,11 +37,13 @@ type Props = {
    * bound Y.Text changes.
    */
   collab?: CollabBinding
+  /** An autocompletion() instance, e.g. pageCompletion() for page sources. */
+  completion?: Extension
 }
 
 const oxideDark = {
-  background: '#080F11',
-  foreground: '#E7E7E8',
+  background: 'var(--surface-default)',
+  foreground: 'var(--content-raise)',
   selection: '#274355',
   cursor: '#E7E7E8',
   lineHighlight: '#112228',
@@ -114,6 +117,20 @@ const theme = EditorView.theme({
     color: 'var(--content-quaternary)',
     minWidth: '1.5rem',
   },
+  '.cm-tooltip': {
+    backgroundColor: oxideDark.lineHighlight,
+    border: '1px solid var(--stroke-default)',
+    color: oxideDark.foreground,
+  },
+  '.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+    backgroundColor: oxideDark.selection,
+    color: oxideDark.foreground,
+  },
+  '.cm-tooltip.cm-tooltip-autocomplete .cm-completionDetail': {
+    color: 'var(--content-quaternary)',
+    fontStyle: 'normal',
+    marginLeft: '0.75em',
+  },
 })
 
 const sharedExtensions = [
@@ -136,6 +153,7 @@ export default function CodeEditor({
   readOnly = false,
   sizing = 'fill',
   collab,
+  completion,
 }: Props) {
   const isCollab = !!collab
 
@@ -145,6 +163,7 @@ export default function CodeEditor({
 
   const extensions = useMemo(() => {
     const base = [languageExtension[language](), ...sharedExtensions]
+    if (completion) base.push(completion)
     if (!collab) return base
     return [
       ...base,
@@ -152,7 +171,7 @@ export default function CodeEditor({
       yCollab(collab.ytext, collab.awareness, { undoManager: collab.undoManager }),
     ]
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, collab?.ytext, collab?.awareness, collab?.undoManager])
+  }, [language, completion, collab?.ytext, collab?.awareness, collab?.undoManager])
 
   // Close the shared undo capture group when leaving the editor so the next
   // edit starts a fresh undo step.

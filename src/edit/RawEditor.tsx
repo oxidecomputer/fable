@@ -3,7 +3,8 @@ import { useMemo } from 'react'
 
 import { $collabBridge } from './collab/room'
 import CodeEditor from './fields/CodeEditor'
-import { $currentPageId, $pageErrors } from './store'
+import { pageCompletion } from './fields/page-completion'
+import { $currentPageId, $pageErrors, $templates } from './store'
 import { EditorPane, Muted } from './ui'
 
 /**
@@ -29,6 +30,7 @@ function PageSource({ pageId }: { pageId: string }) {
     if (!bridge || !ytext) return undefined
     return { ytext, awareness: bridge.awareness, undoManager: bridge.undoManager }
   }, [bridge, pageId])
+  const completion = useMemo(() => pageCompletion(() => $templates.get()), [])
 
   if (!collab) {
     return <Muted className="italic">No page selected</Muted>
@@ -36,7 +38,7 @@ function PageSource({ pageId }: { pageId: string }) {
 
   return (
     <EditorPane error={parseError}>
-      <CodeEditor collab={collab} hasError={!!parseError} />
+      <CodeEditor collab={collab} hasError={!!parseError} completion={completion} />
     </EditorPane>
   )
 }
