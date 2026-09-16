@@ -18,6 +18,7 @@
     "fable": "bin/fable.js"
   },
   "scripts": {
+    "start": "npm start --workspace server",
     "dev": "npm run dev --prefix dev",
     "build": "npm run build --prefix dev",
     "fmt": "prettier --write --ignore-path ./.gitignore  .",

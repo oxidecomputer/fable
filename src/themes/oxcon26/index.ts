@@ -15,6 +15,8 @@ import * as Quote from './templates/Quote'
 import QuoteSource from './templates/Quote.tsx?raw'
 import * as Stat from './templates/Stat'
 import StatSource from './templates/Stat.tsx?raw'
+import * as StatColumns from './templates/StatColumns'
+import StatColumnsSource from './templates/StatColumns.tsx?raw'
 import * as StatPie from './templates/StatPie'
 import StatPieSource from './templates/StatPie.tsx?raw'
 import * as StatRows from './templates/StatRows'
@@ -25,6 +27,10 @@ import * as TextImage from './templates/TextImage'
 import TextImageSource from './templates/TextImage.tsx?raw'
 import * as TitleColumns from './templates/TitleColumns'
 import TitleColumnsSource from './templates/TitleColumns.tsx?raw'
+import * as TitleMetrics from './templates/TitleMetrics'
+import TitleMetricsSource from './templates/TitleMetrics.tsx?raw'
+import * as TitleNumbered from './templates/TitleNumbered'
+import TitleNumberedSource from './templates/TitleNumbered.tsx?raw'
 import * as TitleText from './templates/TitleText'
 import TitleTextSource from './templates/TitleText.tsx?raw'
 
@@ -169,6 +175,48 @@ caption: |-
 ---
 `
 
+const STAT_COLUMNS_EXAMPLE = `---
+template: StatColumns
+columns:
+  - stat: 60k
+    label: "**Lead phrase:** the rest of the label stays plain"
+  - stat: 2%
+    label: "**Parallel structure:** columns read best when labels match shape"
+  - stat: HPC
+    label: "**One to four columns:** fit comfortably side by side"
+variant: dark
+---
+`
+
+const TITLE_NUMBERED_EXAMPLE = `---
+template: TitleNumbered
+title: |-
+  Rack scale
+  **efficiency**
+items:
+  - Numerous use cases for smaller racks
+  - Leverage the increase in PSU density
+  - Running in major I\u0026O POPs
+---
+`
+
+const TITLE_METRICS_EXAMPLE = `---
+template: TitleMetrics
+title: About Us
+image: /large-placeholder.svg
+metrics:
+  - label: Founded in
+    value: "2019"
+    text: Headquartered in Emeryville, CA
+  - label: Employees
+    value: "100"
+    text: Drawing on the best engineering experience.
+  - label: Capital raised ($)
+    value: $374M
+    text: Closed a $200M Series C in Dec 2025.
+---
+`
+
 /**
  * OXCON 09_2026 — a fork of the Oxide theme sharing the conference displays'
  * language: the dual grid, the heatmap shader background, and silkscreen
@@ -217,6 +265,12 @@ export const oxcon26Theme: Theme = {
       STAT_EXAMPLE,
       'One huge stat with a short takeaway below. A single number only — for several use StatRows; for a proportion use StatPie.',
     ),
+    StatColumns: withSource(
+      StatColumns,
+      StatColumnsSource,
+      STAT_COLUMNS_EXAMPLE,
+      'Side-by-side stat columns, each a large value over an aligned label; defaults dark. For stacked full-width rows use StatRows.',
+    ),
     StatPie: withSource(
       StatPie,
       StatPieSource,
@@ -247,6 +301,18 @@ export const oxcon26Theme: Theme = {
       TITLE_COLUMNS_EXAMPLE,
       'Display title with an image right and short parallel text columns bottom-left; for grouped points with a visual.',
     ),
+    TitleMetrics: withSource(
+      TitleMetrics,
+      TitleMetricsSource,
+      TITLE_METRICS_EXAMPLE,
+      'Title over labeled metric columns (label / big value / supporting text), optional faint background image; for company-facts / about slides.',
+    ),
+    TitleNumbered: withSource(
+      TitleNumbered,
+      TitleNumberedSource,
+      TITLE_NUMBERED_EXAMPLE,
+      'Dark shader slide with numbered supporting points above a two-line display headline.',
+    ),
     TitleText: withSource(
       TitleText,
       TitleTextSource,
@@ -267,9 +333,12 @@ Template idioms:
 - "Stat" for one huge stat over the faint cell grid with a grey display takeaway in the text field below.
 - "StatRows" for stacked stat rows: a rows array of { stat, label } pairs, hairline separators between bands; bold the label lead ("**Unified interface:** everything…").
 - "StatPie" for a big accent stat and supporting text left, a pie (percent field, 0–100) flush right with legend entries (legend array, bold lead) on hairlines below. Defaults dark.
+- "StatColumns" for side-by-side stat columns: a columns array of { stat, label } pairs, each a large accent value over a muted label, hairline on the left of each column. Defaults dark. For stacked full-width rows use StatRows.
+- "TitleMetrics" for a title over labeled metric columns: a metrics array of { label, value, text } plus an optional image rendered as a faint full-bleed backdrop — company facts, about-us slides. Defaults light.
+- "TitleNumbered" for numbered supporting points (items array, auto-numbered 01/02/…) above a two-line display headline on the shader.
 - "FullImage" for a full-bleed image with an optional caption bottom-left. variant picks the overlay text color (dark = light text, the default).
 - "Embed" for a full-page embedded web page from a url — live demos, dashboards, interactive content. window: true frames it in a faux browser window on the grid instead of full-bleed. For a static picture use FullImage.
-- Every new-style template takes variant: light | dark (TitleText/TextImage/TitleColumns/Stat/StatRows default light; StatPie/FullImage default dark).
+- Every new-style template takes variant: light | dark (TitleText/TextImage/TitleColumns/TitleMetrics/Stat/StatRows default light; StatPie/StatColumns/FullImage default dark).
 - Line breaks in any text field: a newline renders as a line break (<br> also works); a blank line starts a new paragraph (paragraph spacing comes from the deck-text-* classes).
 
 Choosing a template (in order):
